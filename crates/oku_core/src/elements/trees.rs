@@ -16,7 +16,7 @@ pub fn give_tree_new_ids(new_tree: &mut Element) {
     }
 }
 
-pub fn produce_tree(old_tree: Option<&mut Element>, new_tree: Option<&mut Element>) -> Element {
+pub fn diff_tree(old_tree: Option<&mut Element>, new_tree: Option<&mut Element>) -> Element {
 
     let new_tree = new_tree.unwrap();
 
@@ -32,9 +32,6 @@ pub fn produce_tree(old_tree: Option<&mut Element>, new_tree: Option<&mut Elemen
 
     while bfs_queue.len() > 0 {
         let current = bfs_queue.pop().unwrap();
-
-
-
         for child in current.children_mut() {
             bfs_queue.push(child);
         }

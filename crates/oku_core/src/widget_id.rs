@@ -10,3 +10,7 @@ pub fn create_unique_widget_id() -> u64 {
 
     get_current_widget_id_counter()
 }
+
+pub fn reset_unique_widget_id() {
+    ATOMIC_WIDGET_ID.store(0, Ordering::SeqCst);
+}

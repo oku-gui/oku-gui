@@ -1,6 +1,7 @@
 pub mod widget_id;
 pub mod components;
 pub mod elements;
+pub mod tests;
 
 use cosmic_text::{FontSystem, SwashCache};
 use std::any::Any;
