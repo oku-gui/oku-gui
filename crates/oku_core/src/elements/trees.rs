@@ -1,7 +1,8 @@
 use crate::elements::element::Element;
 use crate::widget_id::create_unique_widget_id;
 
-pub fn give_tree_new_ids(new_tree: &mut Element) {
+/// Assigns new ids to the nodes in the tree using level order traversal.
+pub fn assign_tree_new_ids(new_tree: &mut Element) {
     let mut queue: Vec<&mut Element> = Vec::new();
     queue.push(new_tree);
 
@@ -16,13 +17,13 @@ pub fn give_tree_new_ids(new_tree: &mut Element) {
     }
 }
 
+/// Diff two trees and return the new tree with stable ids.
 pub fn diff_tree(old_tree: Option<&mut Element>, new_tree: Option<&mut Element>) -> Element {
-
     let new_tree = new_tree.unwrap();
 
-    // We have no old tree, we cannot diff yet.
+    // The new tree is the only tree, so we assign new ids to it and return it.
     if old_tree.is_none() {
-        give_tree_new_ids(new_tree);
+        assign_tree_new_ids(new_tree);
         return new_tree.clone();
     }
 

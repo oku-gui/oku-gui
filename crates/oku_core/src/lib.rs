@@ -1,7 +1,7 @@
-pub mod widget_id;
 pub mod components;
 pub mod elements;
 pub mod tests;
+pub mod widget_id;
 
 use cosmic_text::{FontSystem, SwashCache};
 use std::any::Any;
@@ -13,6 +13,8 @@ use crate::elements::element::Element;
 use crate::elements::layout_context::{measure_content, LayoutContext};
 use crate::elements::style::{AlignItems, FlexDirection, JustifyContent, Unit};
 use crate::elements::text::Text;
+use crate::elements::trees::assign_tree_new_ids;
+use crate::widget_id::create_unique_widget_id;
 use accesskit::{Node, NodeBuilder, NodeClassSet, Role, Tree, TreeUpdate};
 use accesskit_winit::{ActionRequestEvent, Adapter};
 use softbuffer::{Buffer, Surface};
@@ -25,8 +27,6 @@ use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopWindo
 use winit::keyboard::{Key, NamedKey};
 use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
 use winit::window::{Window, WindowBuilder};
-use crate::elements::trees::give_tree_new_ids;
-use crate::widget_id::create_unique_widget_id;
 
 pub trait Application {
     fn view(&self) -> Element;
@@ -193,10 +193,7 @@ fn event_loop(window: &Window, adapter: &Adapter, app: Rc<RefCell<RenderContext>
             }
 
             if should_draw {
-
-
                 let mut element = app.application.view();
-
 
                 let mut window_element = Container::new();
 
