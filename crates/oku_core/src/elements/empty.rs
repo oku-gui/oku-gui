@@ -1,15 +1,9 @@
-use crate::elements::color::Color;
 use crate::elements::element::Element;
-use crate::elements::layout_context::{CosmicTextContent, LayoutContext};
-use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
-use crate::widget_id::create_unique_widget_id;
-use crate::{Props, RenderContext};
-use cosmic_text::rustybuzz::ttf_parser::Width;
+use crate::elements::layout_context::LayoutContext;
+use crate::elements::style::Style;
+use crate::RenderContext;
 use cosmic_text::FontSystem;
-use rand::Rng;
-use taffy::style_helpers::length;
 use taffy::{NodeId, TaffyTree};
-use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect, StrokeDash, Transform};
 
 #[derive(Clone, Default)]
 pub struct Empty {
@@ -27,7 +21,7 @@ impl Empty {
 }
 
 impl Empty {
-    pub fn add_child(mut self, widget: Element) -> Empty {
+    pub fn add_child(self, _widget: Element) -> Empty {
         panic!("Empty cannot have children");
     }
 
@@ -51,15 +45,15 @@ impl Empty {
         &mut self.id
     }
 
-    pub fn draw(&mut self, render_context: &mut RenderContext) {}
+    pub fn draw(&mut self, _render_context: &mut RenderContext) {}
 
-    pub fn debug_draw(&mut self, render_context: &mut RenderContext) {}
+    pub fn debug_draw(&mut self, _render_context: &mut RenderContext) {}
 
-    pub fn compute_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, font_system: &mut FontSystem) -> NodeId {
+    pub fn compute_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, _font_system: &mut FontSystem) -> NodeId {
         taffy_tree.new_leaf(Style::default().into()).unwrap()
     }
 
-    pub fn finalize_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, root_node: NodeId, x: f32, y: f32) {}
+    pub fn finalize_layout(&mut self, _taffy_tree: &mut TaffyTree<LayoutContext>, _root_node: NodeId, _x: f32, _y: f32) {}
 
     pub fn computed_style(&mut self) -> Style {
         Style::default()

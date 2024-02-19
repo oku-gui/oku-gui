@@ -1,15 +1,11 @@
 use crate::elements::color::Color;
-use crate::elements::container::Container;
 use crate::elements::element::Element;
 use crate::elements::layout_context::{CosmicTextContent, LayoutContext};
 use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
 use crate::RenderContext;
-use cosmic_text::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping};
-use rand::Rng;
-use taffy::style_helpers::length;
+use cosmic_text::{Attrs, Buffer, FontSystem, Metrics};
 use taffy::{NodeId, TaffyTree};
 use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect, Transform};
-use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default)]
 pub struct Text {
@@ -45,7 +41,7 @@ impl Text {
 }
 
 impl Text {
-    pub fn add_child(mut self, widget: Element) -> Text {
+    pub fn add_child(self, _widget: Element) -> Text {
         panic!("Text can't have children.");
     }
 
@@ -71,8 +67,10 @@ impl Text {
     pub fn draw(&mut self, render_context: &mut RenderContext) {
         let text_color = cosmic_text::Color::rgba(self.style.color.r_u8(), self.style.color.g_u8(), self.style.color.b_u8(), self.style.color.a_u8());
 
-        let mut paint = Paint::default();
-        paint.anti_alias = false;
+        let mut paint = Paint {
+            anti_alias: false,
+            ..Default::default()
+        };
 
         if self.text_buffer.is_none() {
             return;
@@ -83,7 +81,7 @@ impl Text {
         let text_buffer = self.text_buffer.as_mut().unwrap();
 
         paint.set_color_rgba8(self.style.background.r_u8(), self.style.background.g_u8(), self.style.background.b_u8(), self.style.background.a_u8());
-        render_context.canvas.fill_rect(tiny_skia::Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(), &paint, Transform::identity(), None);
+        render_context.canvas.fill_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(), &paint, Transform::identity(), None);
 
         text_buffer.draw(&mut render_context.font_system, &mut render_context.swash_cache, text_color, |x, y, w, h, color| {
             let r = color.r();
@@ -99,7 +97,7 @@ impl Text {
             let p_x: i32 = (element_x + self.computed_padding[3] + x as f32) as i32;
             let p_y: i32 = (element_y + self.computed_padding[0] + y as f32) as i32;
 
-            render_context.canvas.fill_rect(tiny_skia::Rect::from_xywh(p_x as f32, p_y as f32, w as f32, h as f32).unwrap(), &paint, Transform::identity(), None);
+            render_context.canvas.fill_rect(Rect::from_xywh(p_x as f32, p_y as f32, w as f32, h as f32).unwrap(), &paint, Transform::identity(), None);
         });
     }
 
@@ -131,9 +129,9 @@ impl Text {
         let font_size = self.style.font_size;
         let font_line_height = font_size * 1.2;
         let metrics = Metrics::new(font_size, font_line_height);
-        let mut attrs = Attrs::new();
+        let attrs = Attrs::new();
 
-        let style: taffy::Style = self.style.clone().into();
+        let style: taffy::Style = self.style.into();
 
         taffy_tree.new_leaf_with_context(style, LayoutContext::Text(CosmicTextContent::new(metrics, self.text.as_str(), attrs, font_system))).unwrap()
     }
@@ -230,7 +228,7 @@ impl Text {
     }
 
     pub fn computed_style(&self) -> Style {
-        self.style.clone()
+        self.style
     }
     pub fn computed_style_mut(&mut self) -> &mut Style {
         &mut self.style

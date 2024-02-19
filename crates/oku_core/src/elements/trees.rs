@@ -6,8 +6,7 @@ pub fn assign_tree_new_ids(new_tree: &mut Element) {
     let mut queue: Vec<&mut Element> = Vec::new();
     queue.push(new_tree);
 
-    while queue.len() > 0 {
-        let current = queue.pop().unwrap();
+    while let Some(current) = queue.pop() {
         let id = current.id_mut();
         *id = create_unique_widget_id();
 
@@ -35,7 +34,7 @@ pub fn diff_tree(old_tree: Option<&mut Element>, new_tree: Option<&mut Element>)
     old_queue.push(old_tree);
     new_queue.push(new_tree);
 
-    while old_queue.len() > 0 && new_queue.len() > 0 {
+    while !old_queue.is_empty() && !new_queue.is_empty() {
         let old_current = old_queue.pop().unwrap();
         let new_current = new_queue.pop().unwrap();
 
@@ -61,5 +60,5 @@ pub fn diff_tree(old_tree: Option<&mut Element>, new_tree: Option<&mut Element>)
         }
     }
 
-    return new_tree.clone();
+    new_tree.clone()
 }

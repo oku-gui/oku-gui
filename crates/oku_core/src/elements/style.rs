@@ -8,10 +8,7 @@ pub enum Unit {
 
 impl Unit {
     pub fn is_auto(&self) -> bool {
-        match self {
-            Unit::Auto => true,
-            _ => false,
-        }
+        matches!(self, Unit::Auto)
     }
 }
 

@@ -1,28 +1,25 @@
 pub mod components;
 pub mod elements;
-pub mod tests;
+
+#[cfg(test)]
+mod tests;
 pub mod widget_id;
 
-use cosmic_text::{FontSystem, SwashCache};
-use std::any::Any;
-use std::cell::RefCell;
-
-use crate::elements::color::Color;
 use crate::elements::container::Container;
 use crate::elements::element::Element;
 use crate::elements::layout_context::{measure_content, LayoutContext};
-use crate::elements::style::{AlignItems, FlexDirection, JustifyContent, Unit};
-use crate::elements::text::Text;
-use crate::elements::trees::assign_tree_new_ids;
-use crate::widget_id::create_unique_widget_id;
+use crate::elements::style::Unit;
 use accesskit::{Node, NodeBuilder, NodeClassSet, Role, Tree, TreeUpdate};
 use accesskit_winit::{ActionRequestEvent, Adapter};
+use cosmic_text::{FontSystem, SwashCache};
 use softbuffer::{Buffer, Surface};
+use std::any::Any;
+use std::cell::RefCell;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tiny_skia::{Pixmap, Rect, Transform};
-use winit::event::{ElementState, Event, KeyEvent, MouseButton, WindowEvent};
+use winit::event::{ElementState, Event, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopWindowTarget};
 use winit::keyboard::{Key, NamedKey};
 use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
@@ -79,12 +76,11 @@ impl State {
     fn build_initial_tree(&mut self) -> TreeUpdate {
         let _root = self.build_root();
         let tree = Tree::new(accesskit::NodeId(0));
-        let result = TreeUpdate {
+        TreeUpdate {
             nodes: vec![],
             tree: Some(tree),
             focus: accesskit::NodeId(0),
-        };
-        result
+        }
     }
 }
 
@@ -148,76 +144,71 @@ fn event_loop(window: &Window, adapter: &Adapter, app: Rc<RefCell<RenderContext>
         should_draw = true;
     }
 
-    match event {
-        Event::WindowEvent { event, window_id } => {
-            let app: &mut RenderContext = &mut app.borrow_mut();
-            if window_id != window.id() {
-                return;
-            }
+    if let Event::WindowEvent { event, window_id } = event {
+        let app: &mut RenderContext = &mut app.borrow_mut();
+        if window_id != window.id() {
+            return;
+        }
 
-            adapter.process_event(&window, &event);
-            match event {
-                WindowEvent::RedrawRequested => {
-                    should_draw = true;
-                }
-                WindowEvent::CloseRequested => {
-                    event_loop_window_target.exit();
-                }
-                WindowEvent::CursorMoved { position, .. } => {
-                    app.cursor_x = position.x as f32;
-                    app.cursor_y = position.y as f32;
-                }
-                WindowEvent::KeyboardInput {
-                    device_id: _device_id,
-                    event: _event,
-                    is_synthetic: _is_synthetic,
-                } => {
-                    if _event.state == ElementState::Pressed {
-                        match _event.key_without_modifiers().as_ref() {
-                            Key::Named(NamedKey::F3) => {
-                                // Toggle Debug Draw
-                                app.debug_draw = !app.debug_draw;
-                                // Redraw
-                                should_draw = true;
-                            }
-                            _ => {}
-                        }
+        adapter.process_event(window, &event);
+        match event {
+            WindowEvent::RedrawRequested => {
+                should_draw = true;
+            }
+            WindowEvent::CloseRequested => {
+                event_loop_window_target.exit();
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                app.cursor_x = position.x as f32;
+                app.cursor_y = position.y as f32;
+            }
+            WindowEvent::KeyboardInput {
+                device_id: _device_id,
+                event: _event,
+                is_synthetic: _is_synthetic,
+            } => {
+                if _event.state == ElementState::Pressed {
+                    if let Key::Named(NamedKey::F3) = _event.key_without_modifiers().as_ref() {
+                        // Toggle Debug Draw
+                        app.debug_draw = !app.debug_draw;
+                        // Redraw
+                        should_draw = true;
                     }
                 }
-                WindowEvent::MouseInput {
-                    device_id: _device_id,
-                    state: _state,
-                    button,
-                } => {}
-                _ => {}
             }
-
-            if should_draw {
-                let mut element = app.application.view();
-
-                let mut window_element = Container::new();
-
-                let mut root = app.element_tree.clone().unwrap();
-
-                window_element = window_element.width(Unit::Px(window.inner_size().width as f32));
-                //window_element = window_element.height(Unit::Px(window.inner_size().height as f32));
-                let computed_style = &root.computed_style_mut();
-
-                // The root element should be 100% window width if the width is not already set.
-                if computed_style.width.is_auto() {
-                    root.computed_style_mut().width = Unit::Px(window.inner_size().width as f32);
-                }
-
-                window_element = window_element.add_child(root);
-                let mut window_element = Element::Container(window_element);
-
-                layout(window.inner_size().width as f32, window.inner_size().height as f32, app, &mut window_element);
-                draw(window.inner_size().width as f32, window.inner_size().height as f32, app, &mut window_element);
-
-                app.element_tree = Some(window_element);
-            }
+            WindowEvent::MouseInput {
+                device_id: _device_id,
+                state: _state,
+                button: _,
+            } => {}
+            _ => {}
         }
-        _ => {}
+
+        if should_draw {
+            let new_view = app.application.view();
+            app.element_tree = Some(new_view);
+
+            let mut window_element = Container::new();
+
+            let mut root = app.element_tree.clone().unwrap();
+
+            window_element = window_element.width(Unit::Px(window.inner_size().width as f32));
+            //window_element = window_element.height(Unit::Px(window.inner_size().height as f32));
+            let computed_style = &root.computed_style_mut();
+
+            // The root element should be 100% window width if the width is not already set.
+            if computed_style.width.is_auto() {
+                root.computed_style_mut().width = Unit::Px(window.inner_size().width as f32);
+            }
+
+            window_element = window_element.add_child(root);
+            let mut window_element = Element::Container(window_element);
+
+            layout(window.inner_size().width as f32, window.inner_size().height as f32, app, &mut window_element);
+            draw(window.inner_size().width as f32, window.inner_size().height as f32, app, &mut window_element);
+
+            app.element_tree = Some(window_element);
+        }
     }
 }
 

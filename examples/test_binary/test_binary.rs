@@ -3,9 +3,8 @@ use oku_core::elements::container::Container;
 use oku_core::elements::element::Element;
 use oku_core::elements::text::Text;
 use oku_core::Props;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
-use oku_core::widget_id::{create_unique_widget_id, get_current_widget_id_counter};
 
 fn use_state<T: Clone>(value: T) -> (impl Fn() -> T, impl FnMut(T)) {
     let val = Rc::new(RefCell::new(value));
@@ -25,7 +24,7 @@ fn use_state<T: Clone>(value: T) -> (impl Fn() -> T, impl FnMut(T)) {
 struct Test1 {}
 
 impl Component for Test1 {
-    fn view(&self, props: Option<&Props>, children: Vec<Element>) -> Element {
+    fn view(&self, _props: Option<&Props>, _children: Vec<Element>) -> Element {
         Element::Text(Text::new(String::from("Hello")))
     }
 }
@@ -60,11 +59,9 @@ impl oku_core::Application for App {
             data: Box::new(12_u32),
         };
 
-        let test1  = Test1 {};
+        let test1 = Test1 {};
 
-        hello.view(Some(&hello_props), vec![
-            test1.view(None, vec![])
-        ])
+        hello.view(Some(&hello_props), vec![test1.view(None, vec![])])
     }
 }
 

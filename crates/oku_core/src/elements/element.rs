@@ -5,7 +5,6 @@ use crate::elements::style::Style;
 use crate::elements::text::Text;
 use crate::RenderContext;
 use cosmic_text::FontSystem;
-use std::io::empty;
 use taffy::{NodeId, TaffyTree};
 
 #[derive(Clone)]
