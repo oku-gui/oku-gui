@@ -4,6 +4,7 @@ pub mod elements;
 #[cfg(test)]
 mod tests;
 pub mod widget_id;
+pub mod renderer;
 
 use crate::elements::container::Container;
 use crate::elements::element::Element;
@@ -13,6 +14,7 @@ use crate::elements::style::Unit;
 use accesskit::{Node, NodeBuilder, NodeClassSet, Role, Tree, TreeUpdate};
 //use accesskit_winit::{ActionRequestEvent, Adapter};
 use cosmic_text::{FontSystem, SwashCache};
+use renderer::renderer::wgpu_integration;
 use softbuffer::{Buffer, Surface};
 use std::any::Any;
 use std::num::NonZeroU32;
@@ -92,6 +94,10 @@ fn rgb_to_encoded_u32(r: u32, g: u32, b: u32) -> u32 {
 }
 
 pub fn main(application: Box<dyn Application>) {
+
+    /*wgpu_integration();
+    return;*/
+
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async_main(application))
 }

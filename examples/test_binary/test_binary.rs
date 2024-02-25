@@ -1,10 +1,12 @@
-use oku_core::components::component::Component;
-use oku_core::elements::container::Container;
-use oku_core::elements::element::Element;
-use oku_core::elements::text::Text;
-use oku_core::Props;
+use oku::components::component::Component;
+use oku::elements::container::Container;
+use oku::elements::element::Element;
+use oku::elements::text::Text;
+use oku::Props;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use oku::renderer::renderer;
 
 fn use_state<T: Clone>(value: T) -> (impl Fn() -> T, impl FnMut(T)) {
     let val = Rc::new(RefCell::new(value));

@@ -14,3 +14,12 @@ accesskit = "0.12.2"
 #accesskit_winit = { version = "0.18.0" }
 
 tokio = { version = "1.36.0", features = ["full"] }
+
+# https://crates.io/crates/glam
+# SSE2 is enabled by default on x86_64 targets.
+glam = { version = "0.25.0" }
+env_logger = {  version = "0.11"  }
+wgpu = {version = "0.19"}
+
+[features]
+dynamic_linking = []
