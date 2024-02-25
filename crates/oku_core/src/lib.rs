@@ -293,7 +293,7 @@ fn copy_skia_buffer_to_softbuffer(width: f32, height: f32, render_context: &mut 
 }
 
 fn create_window(oku_context: &mut OkuContext, event_loop: &ActiveEventLoop) {
-    let window_attributes = Window::default_attributes().with_title("Oku").with_transparent(true);
+    let window_attributes = Window::default_attributes().with_title("Oku").with_transparent(false);
 
     let window = Rc::new(event_loop.create_window(window_attributes).expect("Failed to create window"));
 
