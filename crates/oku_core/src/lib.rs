@@ -11,20 +11,19 @@ use crate::elements::layout_context::{measure_content, LayoutContext};
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::Unit;
 use accesskit::{Node, NodeBuilder, NodeClassSet, Role, Tree, TreeUpdate};
-use accesskit_winit::{ActionRequestEvent, Adapter};
+//use accesskit_winit::{ActionRequestEvent, Adapter};
 use cosmic_text::{FontSystem, SwashCache};
 use softbuffer::{Buffer, Surface};
 use std::any::Any;
-use std::cell::RefCell;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tiny_skia::{Pixmap, Rect, Transform};
 use winit::event::{ElementState, Event, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopWindowTarget};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopBuilder};
 use winit::keyboard::{Key, NamedKey};
 use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
-use winit::window::{Window, WindowBuilder};
+use winit::window::Window;
 
 pub trait Application {
     fn view(&self) -> Element;
@@ -39,6 +38,11 @@ impl Props {
         self.data.downcast_ref::<T>()
     }
 }
+pub struct OkuContext {
+    render_context: Option<RenderContext>,
+    application: Box<dyn Application>,
+    element_tree: Option<Element>,
+}
 
 pub struct RenderContext {
     font_system: FontSystem,
@@ -48,9 +52,7 @@ pub struct RenderContext {
     cursor_x: f32,
     cursor_y: f32,
     debug_draw: bool,
-
-    application: Box<dyn Application>,
-    element_tree: Option<Element>,
+    window: Rc<Window>,
 }
 
 struct State {
@@ -94,30 +96,19 @@ pub fn main(application: Box<dyn Application>) {
     rt.block_on(async_main(application))
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy)]
+enum ActionRequestEvent {
+    WakeUp,
+}
+
 async fn async_main(application: Box<dyn Application>) {
-    let winit_event_loop: EventLoop<ActionRequestEvent> = EventLoopBuilder::with_user_event().build().unwrap();
-    let window = Rc::new(WindowBuilder::new().build(&winit_event_loop).unwrap());
-    window.set_title("Oku");
-
-    let context = softbuffer::Context::new(window.clone()).unwrap();
-    let surface: Surface<Rc<Window>, Rc<Window>> = Surface::new(&context, window.clone()).unwrap();
-    let pixmap = Pixmap::new(100, 100).unwrap();
-
-    let app = Rc::new(RefCell::new(RenderContext {
-        font_system: FontSystem::new(),
-        swash_cache: SwashCache::new(),
-        surface,
-        canvas: pixmap,
-
-        cursor_x: 0.0,
-        cursor_y: 0.0,
-        debug_draw: false,
-        application,
-        element_tree: None,
-    }));
+    let winit_event_loop = EventLoop::<ActionRequestEvent>::with_user_event().build().unwrap();
+    //let window = Rc::new(Window::default_attributes().(&winit_event_loop).unwrap());
+    //window.set_title("Oku");
 
     let access_kit_state = State::new();
-    let adapter = {
+    /*let adapter = {
         let access_kit_state = Arc::clone(&access_kit_state);
         Adapter::new(
             &window,
@@ -127,42 +118,51 @@ async fn async_main(application: Box<dyn Application>) {
             },
             winit_event_loop.create_proxy(),
         )
+    };*/
+
+    let mut oku_context = OkuContext {
+        render_context: None,
+        application,
+        element_tree: None,
     };
 
     winit_event_loop
         .run(move |event, event_loop_window_target| {
-            event_loop(&window, &adapter, app.clone(), event, event_loop_window_target);
+            event_loop(&mut oku_context, event, event_loop_window_target);
         })
         .unwrap();
 }
 
-fn event_loop(window: &Window, adapter: &Adapter, app: Rc<RefCell<RenderContext>>, event: Event<ActionRequestEvent>, event_loop_window_target: &EventLoopWindowTarget<ActionRequestEvent>) {
+fn event_loop(app: &mut OkuContext, event: Event<ActionRequestEvent>, event_loop_window_target: &ActiveEventLoop) {
     event_loop_window_target.set_control_flow(ControlFlow::Wait);
     let mut should_draw = false;
 
-    // Create the first tree
+    /*// Create the first tree
     if app.borrow_mut().element_tree.is_none() {
         should_draw = true;
-    }
+    }*/
 
-    if let Event::WindowEvent { event, window_id } = event {
-        let app: &mut RenderContext = &mut app.borrow_mut();
-        if window_id != window.id() {
-            return;
-        }
-
-        adapter.process_event(window, &event);
-        match event {
-            WindowEvent::RedrawRequested => {
-                should_draw = true;
+    match event {
+        Event::WindowEvent { window_id, event } => match event {
+            WindowEvent::ActivationTokenDone { .. } => {}
+            WindowEvent::Resized(size) => {
+                if let Some(render_context) = &mut app.render_context {
+                    let width = size.width;
+                    let height = size.height;
+                    render_context.surface.resize(NonZeroU32::new(width).unwrap(), NonZeroU32::new(height).unwrap()).unwrap();
+                    render_context.canvas = Pixmap::new(width, height).unwrap();
+                    should_draw = true;
+                }
             }
+            WindowEvent::Moved(_) => {}
             WindowEvent::CloseRequested => {
                 event_loop_window_target.exit();
             }
-            WindowEvent::CursorMoved { position, .. } => {
-                app.cursor_x = position.x as f32;
-                app.cursor_y = position.y as f32;
-            }
+            WindowEvent::Destroyed => {}
+            WindowEvent::DroppedFile(_) => {}
+            WindowEvent::HoveredFile(_) => {}
+            WindowEvent::HoveredFileCancelled => {}
+            WindowEvent::Focused(_) => {}
             WindowEvent::KeyboardInput {
                 device_id: _device_id,
                 event: _event,
@@ -170,47 +170,77 @@ fn event_loop(window: &Window, adapter: &Adapter, app: Rc<RefCell<RenderContext>
             } => {
                 if _event.state == ElementState::Pressed {
                     if let Key::Named(NamedKey::F3) = _event.key_without_modifiers().as_ref() {
-                        // Toggle Debug Draw
-                        app.debug_draw = !app.debug_draw;
-                        // Redraw
-                        should_draw = true;
+                        if let Some(render_context) = &mut app.render_context {
+                            render_context.debug_draw = !render_context.debug_draw;
+                            should_draw = true;
+                        }
                     }
                 }
             }
-            WindowEvent::MouseInput {
-                device_id: _device_id,
-                state: _state,
-                button: _,
-            } => {}
-            _ => {}
-        }
-
-        if should_draw {
-            let new_view = app.application.view();
-            app.element_tree = Some(new_view);
-
-            let mut window_element = Container::new();
-
-            let mut root = app.element_tree.clone().unwrap();
-
-            window_element = window_element.width(Unit::Px(window.inner_size().width as f32));
-            //window_element = window_element.height(Unit::Px(window.inner_size().height as f32));
-            let computed_style = &root.computed_style_mut();
-
-            // The root element should be 100% window width if the width is not already set.
-            if computed_style.width.is_auto() {
-                root.computed_style_mut().width = Unit::Px(window.inner_size().width as f32);
+            WindowEvent::ModifiersChanged(_) => {}
+            WindowEvent::Ime(_) => {}
+            WindowEvent::CursorMoved { .. } => {}
+            WindowEvent::CursorEntered { .. } => {}
+            WindowEvent::CursorLeft { .. } => {}
+            WindowEvent::MouseWheel { .. } => {}
+            WindowEvent::MouseInput { .. } => {}
+            WindowEvent::PinchGesture { .. } => {}
+            WindowEvent::DoubleTapGesture { .. } => {}
+            WindowEvent::RotationGesture { .. } => {}
+            WindowEvent::TouchpadPressure { .. } => {}
+            WindowEvent::AxisMotion { .. } => {}
+            WindowEvent::Touch(_) => {}
+            WindowEvent::ScaleFactorChanged { .. } => {}
+            WindowEvent::ThemeChanged(_) => {}
+            WindowEvent::Occluded(_) => {}
+            WindowEvent::RedrawRequested => {
+                should_draw = true;
             }
-
-            window_element = window_element.add_child(root);
-            let mut window_element = Element::Container(window_element);
-
-            layout(window.inner_size().width as f32, window.inner_size().height as f32, app, &mut window_element);
-            draw(window.inner_size().width as f32, window.inner_size().height as f32, app, &mut window_element);
-
-            app.element_tree = Some(window_element);
+        },
+        Event::Resumed => {
+            create_window(app, event_loop_window_target);
         }
+        Event::NewEvents(_) => {}
+        Event::DeviceEvent { .. } => {}
+        Event::UserEvent(_) => {}
+        Event::Suspended => {
+            app.render_context = None;
+        }
+        Event::AboutToWait => {}
+        Event::LoopExiting => {}
+        Event::MemoryWarning => {}
+    };
+
+    if !should_draw || app.render_context.is_none() {
+        return;
     }
+
+    let render_context = app.render_context.as_mut().unwrap();
+    let width = render_context.canvas.width() as f32;
+    let height = render_context.canvas.height() as f32;
+
+    let new_view = app.application.view();
+    app.element_tree = Some(new_view);
+
+    let mut window_element = Container::new();
+
+    let mut root = app.element_tree.clone().unwrap();
+
+    window_element = window_element.width(Unit::Px(width));
+    let computed_style = &root.computed_style_mut();
+
+    // The root element should be 100% window width if the width is not already set.
+    if computed_style.width.is_auto() {
+        root.computed_style_mut().width = Unit::Px(width);
+    }
+
+    window_element = window_element.add_child(root);
+    let mut window_element = Element::Container(window_element);
+
+    layout(width, height, render_context, &mut window_element);
+    draw(width, height, render_context, &mut window_element);
+
+    app.element_tree = Some(window_element);
 }
 
 fn draw(window_width: f32, window_height: f32, render_context: &mut RenderContext, root_element: &mut Element) {
@@ -218,9 +248,7 @@ fn draw(window_width: f32, window_height: f32, render_context: &mut RenderContex
         return;
     }
 
-    render_context.surface.resize(NonZeroU32::new(window_width as u32).unwrap(), NonZeroU32::new(window_height as u32).unwrap()).unwrap();
-    render_context.canvas = Pixmap::new(window_width as u32, window_height as u32).unwrap();
-    render_context.canvas.fill(tiny_skia::Color::from_rgba8(255, 255, 255, 255));
+    render_context.canvas.fill(tiny_skia::Color::WHITE);
 
     root_element.draw(render_context);
     if render_context.debug_draw {
@@ -262,4 +290,25 @@ fn copy_skia_buffer_to_softbuffer(width: f32, height: f32, render_context: &mut 
         }
     }
     buffer
+}
+
+fn create_window(oku_context: &mut OkuContext, event_loop: &ActiveEventLoop) {
+    let window_attributes = Window::default_attributes().with_title("Oku").with_transparent(true);
+
+    let window = Rc::new(event_loop.create_window(window_attributes).expect("Failed to create window"));
+
+    let context = softbuffer::Context::new(window.clone()).unwrap();
+    let surface: Surface<Rc<Window>, Rc<Window>> = Surface::new(&context, window.clone()).unwrap();
+    let pixmap = Pixmap::new(window.inner_size().width, window.inner_size().height).unwrap();
+
+    oku_context.render_context = Some(RenderContext {
+        font_system: FontSystem::new(),
+        swash_cache: SwashCache::new(),
+        surface,
+        canvas: pixmap,
+        cursor_x: 0.0,
+        cursor_y: 0.0,
+        debug_draw: false,
+        window: window.clone(),
+    });
 }
