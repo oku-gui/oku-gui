@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use std::sync::Arc;
-use std::thread;
 use glam;
 use winit::event::{ElementState, Event, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopBuilder};
@@ -46,36 +45,41 @@ enum ActionRequestEvent {
     WakeUp,
 }
 
-pub async fn wgpu_integration() {
+pub fn wgpu_integration() {
     env_logger::init();
-    let winit_event_loop = EventLoop::<ActionRequestEvent>::with_user_event().build().unwrap();
+    let mut winit_event_loop = EventLoop::<ActionRequestEvent>::with_user_event().build().unwrap();
     let window_attributes = Window::default_attributes().with_title("oku").with_transparent(false);
     let window = Rc::new(winit_event_loop.create_window(window_attributes).expect("Failed to create window"));
 
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
     let mut render_context: Option<RenderContext> = None;
 
-    winit_event_loop.run(|f, b| {
-        tokio::task::spawn(|| {
-            Box::pin(foo(f, b));
-        });
-    }).unwrap();
 
-}
-pub async fn foo(event: Event<ActionRequestEvent>, event_loop_window_target: &ActiveEventLoop) {
+    async fn async_operation(mut rx: tokio::sync::mpsc::Receiver<String>) {
+        loop {
+            tokio::select! {
+            value = rx.recv() => {
+                    if(value.is_some()) {
+                        println!("Received event: {:?}", value.unwrap());
+                    }
+            }
+            }
+        }
+    }
+
+    let (tx, rx) = tokio::sync::mpsc::channel::<String>(32);
+    rt.spawn(async_operation(rx));
+
+    winit_event_loop.run(|event: Event<ActionRequestEvent>, event_loop_window_target: &ActiveEventLoop| {
         event_loop_window_target.set_control_flow(ControlFlow::Wait);
 
         let mut should_draw = false;
-
-        /*// Create the first tree
-        if app.borrow_mut().element_tree.is_none() {
-            should_draw = true;
-        }*/
 
         match event {
             Event::WindowEvent { window_id, event } => match event {
                 WindowEvent::ActivationTokenDone { .. } => {}
                 WindowEvent::Resized(size) => {
-
                 }
                 WindowEvent::Moved(_) => {}
                 WindowEvent::CloseRequested => {
@@ -96,7 +100,11 @@ pub async fn foo(event: Event<ActionRequestEvent>, event_loop_window_target: &Ac
                 }
                 WindowEvent::ModifiersChanged(_) => {}
                 WindowEvent::Ime(_) => {}
-                WindowEvent::CursorMoved { .. } => {}
+                WindowEvent::CursorMoved { .. } => {
+                    rt.block_on(async {
+                        tx.send(String::from("Hi")).await;
+                    })
+                }
                 WindowEvent::CursorEntered { .. } => {}
                 WindowEvent::CursorLeft { .. } => {}
                 WindowEvent::MouseWheel { .. } => {}
@@ -115,9 +123,9 @@ pub async fn foo(event: Event<ActionRequestEvent>, event_loop_window_target: &Ac
                 }
             },
             Event::Resumed => {
-                async {
+               /* async {
                     create_render_context(event_loop_window_target);
-                }.await;
+                };*/
             }
             Event::NewEvents(_) => {}
             Event::DeviceEvent { .. } => {}
@@ -127,7 +135,9 @@ pub async fn foo(event: Event<ActionRequestEvent>, event_loop_window_target: &Ac
             Event::AboutToWait => {}
             Event::LoopExiting => {}
             Event::MemoryWarning => {}
-        }
+    }
+
+    }).unwrap();
 }
 
 async fn create_render_context(event_loop: &ActiveEventLoop) -> Option<RenderContext> {
@@ -149,14 +159,14 @@ async fn create_render_context(event_loop: &ActiveEventLoop) -> Option<RenderCon
         },
     ).await;
 
-    let (device, queue) = adapter.request_device(
+   /* let (device, queue) = adapter.request_device(
         &wgpu::DeviceDescriptor {
             label: wgpu::Label::from("oku_wgpu_renderer"),
             required_features: wgpu::Features::empty(),
             required_limits: wgpu::Limits::default(),
         },
         None, // Trace path
-    ).unwrap();
+    ).unwrap();*/
 
 
    /* let mut render_context = RenderContext {
