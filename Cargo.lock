@@ -488,7 +488,7 @@ dependencies = [
 [[package]]
 name = "cosmic-text"
 version = "0.11.2"
-source = "git+https://github.com/pop-os/cosmic-text?rev=2766961af621b9235616e186046f6d14a2f5fbc0#2766961af621b9235616e186046f6d14a2f5fbc0"
+source = "git+https://github.com/pop-os/cosmic-text?rev=22e61965aa38ab0bd64bbdddf3848ae891edceba#22e61965aa38ab0bd64bbdddf3848ae891edceba"
 dependencies = [
  "bitflags 2.4.1",
  "fontdb",
@@ -572,6 +572,11 @@ name = "downcast-rs"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
+
+[[package]]
+name = "dpi"
+version = "0.0.0"
+source = "git+https://github.com/rust-windowing/winit?rev=944347696ab965d9dc5b617fc89daa9f7ad1ea88#944347696ab965d9dc5b617fc89daa9f7ad1ea88"
 
 [[package]]
 name = "drm"
@@ -2273,9 +2278,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu"
-version = "0.19.1"
+version = "0.19.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bfe9a310dcf2e6b85f00c46059aaeaf4184caa8e29a1ecd4b7a704c3482332d"
+checksum = "a4b1213b52478a7631d6e387543ed8f642bc02c578ef4e3b49aca2a29a7df0cb"
 dependencies = [
  "arrayvec",
  "cfg-if",
@@ -2633,8 +2638,8 @@ checksum = "dff9641d1cd4be8d1a070daf9e3773c5f67e78b4d9d42263020c057706765c04"
 
 [[package]]
 name = "winit"
-version = "0.29.10"
-source = "git+https://github.com/rust-windowing/winit?rev=990bbf178f9ddc52ec75026e357fe54853bf533f#990bbf178f9ddc52ec75026e357fe54853bf533f"
+version = "0.29.12"
+source = "git+https://github.com/rust-windowing/winit?rev=944347696ab965d9dc5b617fc89daa9f7ad1ea88#944347696ab965d9dc5b617fc89daa9f7ad1ea88"
 dependencies = [
  "ahash",
  "android-activity",
@@ -2647,15 +2652,14 @@ dependencies = [
  "core-foundation",
  "core-graphics",
  "cursor-icon",
+ "dpi",
  "icrate",
  "js-sys",
  "libc",
- "log",
  "memmap2",
  "ndk",
  "ndk-sys",
  "objc2",
- "once_cell",
  "orbclient",
  "percent-encoding",
  "pin-project",
@@ -2665,6 +2669,7 @@ dependencies = [
  "sctk-adwaita",
  "smithay-client-toolkit",
  "smol_str",
+ "tracing",
  "unicode-segmentation",
  "wasm-bindgen",
  "wasm-bindgen-futures",
