@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use glam;
@@ -350,18 +351,17 @@ impl Renderer for WgpuRenderer<'_> {
     }
 }
 
-struct RenderContext<'a> {
-    renderer: Box<dyn Renderer + 'a>,
+struct RenderContext {
+    renderer: Box<dyn Renderer + Send>,
     window: Arc<Window>,
 }
 
-impl<'a> RenderContext<'a> {
-    async fn new(window: Arc<Window>) -> Arc<RenderContext<'a>> {
-        let renderer = Box::new(WgpuRenderer::new(window.clone()).await);
-        Arc::new(RenderContext {
+impl RenderContext {
+    async fn new(window: Arc<Window>, renderer: Box<dyn Renderer + Send>) -> RenderContext {
+        RenderContext {
             renderer,
             window,
-        })
+        }
     }
 }
 
@@ -457,14 +457,19 @@ struct Snapshot {
     window: Arc<winit::window::Window>,
 }
 
+async fn foo() {
+    let render_context: Pin<Box<Option<RenderContext>>> = Box::pin(None);
+
+}
+
 pub fn wgpu_integration() {
     env_logger::init();
     let mut winit_event_loop = EventLoop::<ActionRequestEvent>::with_user_event().build().unwrap();
 
     let rt = tokio::runtime::Runtime::new().unwrap();
 
-    async fn async_operation(mut rx: tokio::sync::mpsc::Receiver<Snapshot>) -> ! {
-        let render_context: Arc<Mutex<Option<RenderContext>>> = Arc::new(Mutex::new(None));
+    async fn async_operation(mut rx: tokio::sync::mpsc::Receiver<Snapshot>) {
+        let mut render_context: Option<RenderContext> = None;
         let mut should_draw = false;
 
         loop {
@@ -478,7 +483,9 @@ pub fn wgpu_integration() {
 
                     match message.event {
                         Event::Resumed => {
-                            //render_context = Some(Box::new(RenderContext::new(message.window.clone()).await));
+
+                            let renderer = Box::new(WgpuRenderer::new(message.window.clone()).await);
+                            render_context = Some(RenderContext::new(message.window.clone(), renderer).await);
 
                             should_draw = true;
                         },
