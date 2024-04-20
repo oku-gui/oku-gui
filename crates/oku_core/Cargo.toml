@@ -37,10 +37,10 @@ web-sys = { version = "0.3", features = [
     "Element",
 ] }
 console_log = "1.0"
-wgpu = { version = "0.19.3", features = [] }
+#wgpu = { version = "0.19.3", features = ["webgpu"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.37.0", features = ["full"] }
 
 [features]
 dynamic_linking = []

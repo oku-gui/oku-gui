@@ -1,12 +1,10 @@
+use oku::application::Props;
 use oku::components::component::Component;
 use oku::elements::container::Container;
 use oku::elements::element::Element;
 use oku::elements::text::Text;
-use oku::Props;
 use std::cell::RefCell;
 use std::rc::Rc;
-
-use oku::renderer::renderer;
 
 fn use_state<T: Clone>(value: T) -> (impl Fn() -> T, impl FnMut(T)) {
     let val = Rc::new(RefCell::new(value));
@@ -54,7 +52,7 @@ impl Component for Hello {
 
 struct App {}
 
-impl oku_core::Application for App {
+impl oku_core::application::Application for App {
     fn view(&self) -> Element {
         let hello = Hello {};
         let hello_props = Props {
@@ -69,5 +67,5 @@ impl oku_core::Application for App {
 
 fn main() {
     let application = App {};
-    oku_core::main(Box::new(application));
+    oku_core::oku_main(Box::new(application));
 }

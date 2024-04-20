@@ -1,61 +1,47 @@
+pub mod application;
 pub mod components;
 pub mod elements;
+mod widget_id;
 
-pub mod renderer;
-#[cfg(test)]
-mod tests;
-pub mod widget_id;
-
-use crate::elements::container::Container;
+use crate::application::Application;
 use crate::elements::element::Element;
-use crate::elements::layout_context::{measure_content, LayoutContext};
-use crate::elements::standard_element::StandardElement;
-use crate::elements::style::Unit;
-use accesskit::{Node, NodeBuilder, NodeClassSet, Role, Tree, TreeUpdate};
-use env_logger;
-//use accesskit_winit::{ActionRequestEvent, Adapter};
 use cosmic_text::{FontSystem, SwashCache};
-use renderer::renderer::wgpu_integration;
-use softbuffer::{Buffer, Surface};
-use std::any::Any;
-use std::num::NonZeroU32;
+use log::info;
+//use softbuffer::Surface;
+use std::borrow::Cow;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
-use tiny_skia::{Pixmap, Rect, Transform};
-use winit::event::{ElementState, Event, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopBuilder};
+use std::sync::Arc;
+use std::{thread, time};
+use tiny_skia::Pixmap;
+use tokio::sync::mpsc;
+use winit::application::ApplicationHandler;
+use winit::dpi::PhysicalSize;
+use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
-#[cfg(not(target_arch = "wasm32"))]
-use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
 use winit::window::{Window, WindowId};
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
+use wgpu::{Device, Queue, RenderPipeline, Surface, SurfaceConfiguration};
 
-pub trait Application {
-    fn view(&self) -> Element;
-}
+const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 
-pub struct Props {
-    pub data: Box<dyn Any>,
+struct App<'a> {
+    window: Option<Arc<Window>>,
+    wgpu_instance: wgpu::Instance,
+    renderer: Option<RenderState<'a>>,
 }
-
-impl Props {
-    pub fn get_data<T: 'static>(&self) -> Option<&T> {
-        self.data.downcast_ref::<T>()
-    }
-}
-pub struct OkuContext {
-    render_context: Option<RenderContext>,
-    application: Box<dyn Application>,
-    element_tree: Option<Element>,
-    should_draw: bool,
+struct RenderState<'a> {
+    surface: Surface<'a>,
+    device: Device,
+    render_pipeline: RenderPipeline,
+    queue: Queue,
+    config: SurfaceConfiguration,
 }
 
 pub struct RenderContext {
     font_system: FontSystem,
     swash_cache: SwashCache,
-    surface: Surface<Rc<Window>, Rc<Window>>,
+    surface: softbuffer::Surface<Rc<Window>, Rc<Window>>,
     canvas: Pixmap,
     cursor_x: f32,
     cursor_y: f32,
@@ -63,274 +49,305 @@ pub struct RenderContext {
     window: Rc<Window>,
 }
 
-struct State {
-    _focus: taffy::NodeId,
-    _announcement: Option<String>,
-    node_classes: NodeClassSet,
+struct ControlFlowDemo {
+    id: u64,
+    rt: tokio::runtime::Runtime,
+    request_redraw: bool,
+    wait_cancelled: bool,
+    close_requested: bool,
+    window: Option<Arc<Window>>,
+    app_to_winit_rx: mpsc::Receiver<(u64, Message)>,
+    winit_to_app_tx: mpsc::Sender<(u64, Message)>,
 }
 
-impl State {
-    fn new() -> Arc<Mutex<Self>> {
-        Arc::new(Mutex::new(Self {
-            _focus: taffy::NodeId::new(0),
-            _announcement: None,
-            node_classes: NodeClassSet::new(),
-        }))
-    }
-
-    fn build_root(&mut self) -> Node {
-        let mut builder = NodeBuilder::new(Role::Window);
-        builder.set_name("WINDOW_TITLE");
-        builder.build(&mut self.node_classes)
-    }
-
-    fn build_initial_tree(&mut self) -> TreeUpdate {
-        let _root = self.build_root();
-        let tree = Tree::new(accesskit::NodeId(0));
-        TreeUpdate {
-            nodes: vec![],
-            tree: Some(tree),
-            focus: accesskit::NodeId(0),
-        }
-    }
+#[derive(Debug, Clone)]
+enum Message {
+    RequestRedraw,
+    Close,
+    None,
+    Resume(Arc<Window>),
+    Resize(PhysicalSize<u32>),
 }
 
-fn rgb_to_encoded_u32(r: u32, g: u32, b: u32) -> u32 {
-    b | (g << 8) | (r << 16)
-}
-use log::info;
-use log::Level;
-use winit::application::ApplicationHandler;
+pub fn oku_main(application: Box<dyn Application>) {
+    let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("Failed to create runtime");
 
-pub fn main(application: Box<dyn Application>) {
-    cfg_if::cfg_if! {
-        if #[cfg(target_arch = "wasm32")] {
-            std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-            console_log::init_with_level(log::Level::Info).expect("Couldn't initialize logger");
-            info!("It works!");
-        } else {
-            env_logger::init();
-        }
-    }
-    wgpu_integration();
-    //async_main(application);
-}
+    let event_loop = EventLoop::new().unwrap();
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
-enum ActionRequestEvent {
-    WakeUp,
-}
+    let (winit_to_app_tx, winit_to_app_rx) = mpsc::channel::<(u64, Message)>(100);
+    let (app_to_winit_tx, app_to_winit_rx) = mpsc::channel::<(u64, Message)>(100);
 
-impl ApplicationHandler<ActionRequestEvent> for OkuContext {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        create_window(self, event_loop);
-    }
+    rt.spawn(async move {
+        async_main(winit_to_app_rx, app_to_winit_tx).await;
+    });
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
-        match event {
-            WindowEvent::ActivationTokenDone { .. } => {}
-            WindowEvent::Resized(new_size) => {
-                if let Some(render_context) = &mut self.render_context {
-                    let width = new_size.width;
-                    let height = new_size.height;
-                    render_context.surface.resize(NonZeroU32::new(width).unwrap(), NonZeroU32::new(height).unwrap()).unwrap();
-                    render_context.canvas = Pixmap::new(width, height).unwrap();
-                    self.should_draw = true;
-                }
-            }
-            WindowEvent::Moved(_) => {}
-            WindowEvent::CloseRequested => {
-                event_loop.exit();
-            }
-            WindowEvent::Destroyed => {}
-            WindowEvent::DroppedFile(_) => {}
-            WindowEvent::HoveredFile(_) => {}
-            WindowEvent::HoveredFileCancelled => {}
-            WindowEvent::Focused(_) => {}
-            WindowEvent::KeyboardInput {
-                device_id: _device_id,
-                event: _event,
-                is_synthetic: _is_synthetic,
-            } => {
-                if _event.state == ElementState::Pressed {
-                    cfg_if::cfg_if! {
-                        if #[cfg(target_arch = "wasm32")] {
-                        } else {
-                            if let Key::Named(NamedKey::F3) = _event.key_without_modifiers().as_ref() {
-                        if let Some(render_context) = &mut self.render_context {
-                            render_context.debug_draw = !render_context.debug_draw;
-                            self.should_draw = true;
-                        }
-                    }
-                        }
-                    }
-                }
-            }
-            WindowEvent::ModifiersChanged(_) => {}
-            WindowEvent::Ime(_) => {}
-            WindowEvent::CursorMoved { .. } => {}
-            WindowEvent::CursorEntered { .. } => {}
-            WindowEvent::CursorLeft { .. } => {}
-            WindowEvent::MouseWheel { .. } => {}
-            WindowEvent::MouseInput { .. } => {}
-            WindowEvent::PinchGesture { .. } => {}
-            WindowEvent::DoubleTapGesture { .. } => {}
-            WindowEvent::RotationGesture { .. } => {}
-            WindowEvent::TouchpadPressure { .. } => {}
-            WindowEvent::AxisMotion { .. } => {}
-            WindowEvent::Touch(_) => {}
-            WindowEvent::ScaleFactorChanged { .. } => {}
-            WindowEvent::ThemeChanged(_) => {}
-            WindowEvent::Occluded(_) => {}
-            WindowEvent::RedrawRequested => {}
-        }
-    }
-}
-
-fn async_main(application: Box<dyn Application>) {
-    let winit_event_loop = EventLoop::<ActionRequestEvent>::with_user_event().build().unwrap();
-    //let window = Rc::new(Window::default_attributes().(&winit_event_loop).unwrap());
-    //window.set_title("Oku");
-
-    let access_kit_state = State::new();
-    /*let adapter = {
-        let access_kit_state = Arc::clone(&access_kit_state);
-        Adapter::new(
-            &window,
-            move || {
-                let mut state = access_kit_state.lock().unwrap();
-                state.build_initial_tree()
-            },
-            winit_event_loop.create_proxy(),
-        )
-    };*/
-
-    let mut oku_context = OkuContext {
-        render_context: None,
-        application,
-        element_tree: None,
-        should_draw: false,
+    let mut app = ControlFlowDemo {
+        id: 0,
+        rt,
+        request_redraw: false,
+        wait_cancelled: false,
+        close_requested: false,
+        window: None,
+        app_to_winit_rx,
+        winit_to_app_tx,
     };
 
-    winit_event_loop.run_app(&mut oku_context).unwrap();
+    event_loop.run_app(&mut app).expect("run_app failed");
 }
 
-fn event_loop(app: &mut OkuContext, event: Event<ActionRequestEvent>, event_loop_window_target: &ActiveEventLoop) {
-    event_loop_window_target.set_control_flow(ControlFlow::Wait);
+impl ApplicationHandler for ControlFlowDemo {
+    fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
+        //println!("new_events: {cause:?}");
 
-    /*// Create the first tree
-    if app.borrow_mut().element_tree.is_none() {
-        should_draw = true;
-    }*/
-
-    if !app.should_draw || app.render_context.is_none() {
-        return;
-    }
-
-    let render_context = app.render_context.as_mut().unwrap();
-    let width = render_context.canvas.width() as f32;
-    let height = render_context.canvas.height() as f32;
-
-    let new_view = app.application.view();
-    app.element_tree = Some(new_view);
-
-    let mut window_element = Container::new();
-
-    let mut root = app.element_tree.clone().unwrap();
-
-    window_element = window_element.width(Unit::Px(width));
-    let computed_style = &root.computed_style_mut();
-
-    // The root element should be 100% window width if the width is not already set.
-    if computed_style.width.is_auto() {
-        root.computed_style_mut().width = Unit::Px(width);
-    }
-
-    window_element = window_element.add_child(root);
-    let mut window_element = Element::Container(window_element);
-
-    layout(width, height, render_context, &mut window_element);
-    draw(width, height, render_context, &mut window_element);
-
-    app.element_tree = Some(window_element);
-}
-
-fn draw(window_width: f32, window_height: f32, render_context: &mut RenderContext, root_element: &mut Element) {
-    if window_height == 0.0 || window_width == 0.0 {
-        return;
-    }
-
-    render_context.canvas.fill(tiny_skia::Color::WHITE);
-
-    root_element.draw(render_context);
-    if render_context.debug_draw {
-        let mut paint = tiny_skia::Paint::default();
-        paint.set_color_rgba8(255, 90, 24, 255);
-        render_context.canvas.fill_rect(Rect::from_xywh(window_width / 2.0 - 1.0, 0.0, 2.0, window_height).unwrap(), &paint, Transform::identity(), None);
-        root_element.debug_draw(render_context);
-    }
-
-    // Fill Framebuffer with pixels from tiny-skia.
-    let buffer = copy_skia_buffer_to_softbuffer(window_width, window_height, render_context);
-
-    buffer.present().unwrap();
-}
-
-fn layout(_window_width: f32, _window_height: f32, render_context: &mut RenderContext, root_element: &mut Element) {
-    let mut taffy_tree: taffy::TaffyTree<LayoutContext> = taffy::TaffyTree::new();
-    let root_node = root_element.compute_layout(&mut taffy_tree, &mut render_context.font_system);
-
-    taffy_tree
-        .compute_layout_with_measure(root_node, taffy::Size::max_content(), |known_dimensions, available_space, _node_id, node_context| measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system))
-        .unwrap();
-
-    root_element.finalize_layout(&mut taffy_tree, root_node, 0.0, 0.0);
-}
-
-fn copy_skia_buffer_to_softbuffer(width: f32, height: f32, render_context: &mut RenderContext) -> Buffer<Rc<Window>, Rc<Window>> {
-    let mut buffer = render_context.surface.buffer_mut().unwrap();
-    for y in 0..height as u32 {
-        for x in 0..width as u32 {
-            let index = y as usize * width as usize + x as usize;
-            let current_pixel = render_context.canvas.pixels()[index];
-
-            let red = current_pixel.red() as u32;
-            let green = current_pixel.green() as u32;
-            let blue = current_pixel.blue() as u32;
-
-            buffer[index] = rgb_to_encoded_u32(red, green, blue);
+        self.wait_cancelled = match cause {
+            StartCause::WaitCancelled { .. } => true,
+            _ => false,
         }
     }
-    buffer
-}
 
-fn create_window(oku_context: &mut OkuContext, event_loop: &ActiveEventLoop) {
-    let window_attributes = Window::default_attributes().with_title("Oku").with_transparent(false);
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        info!("resumed");
+        let window_attributes = Window::default_attributes().with_title("Press 1, 2, 3 to change control flow mode. Press R to toggle redraw requests.");
+        info!("resumed 4");
+        let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
+        info!("resumed 2");
+        self.window = Some(window.clone());
 
-    let window = Rc::new(event_loop.create_window(window_attributes).expect("Failed to create window"));
+        let id = self.id;
+        info!("resumed 3");
+        self.rt.block_on(async {
+            self.winit_to_app_tx.send((id, Message::Resume(window.clone()))).await.expect("send failed");
+            if let Some((id, Message::None)) = self.app_to_winit_rx.recv().await {
+                println!("Resume Done: {}", id);
+            }
 
-    #[cfg(target_arch = "wasm32")]
-    {
-        use winit::platform::web::WindowExtWebSys;
-
-        web_sys::window().unwrap().document().unwrap().body().unwrap().append_child(&window.canvas().unwrap()).unwrap();
+            // web code
+            info!("send message");
+            let x = self.winit_to_app_tx.send((id, Message::Resume(window.clone())));
+        });
+        self.id += 1;
     }
 
-    info!("width: {}", window.inner_size().width);
-    info!("height: {}", window.inner_size().height);
-    let context = softbuffer::Context::new(window.clone()).unwrap();
-    let surface: Surface<Rc<Window>, Rc<Window>> = Surface::new(&context, window.clone()).unwrap();
-    let pixmap = Pixmap::new(100, 100).unwrap();
+    fn window_event(&mut self, _event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
+        //println!("{event:?}");
 
-    oku_context.render_context = Some(RenderContext {
-        font_system: FontSystem::new_with_fonts([cosmic_text::fontdb::Source::Binary(Arc::new(include_bytes!("../../../fonts/FiraSans-Regular.ttf").as_slice()))]),
-        swash_cache: SwashCache::new(),
-        surface,
-        canvas: pixmap,
-        cursor_x: 0.0,
-        cursor_y: 0.0,
-        debug_draw: false,
-        window: window.clone(),
-    });
+        match event {
+            WindowEvent::CloseRequested => {
+                let id = self.id;
+                self.rt.block_on(async {
+                    self.winit_to_app_tx.send((id, Message::Close)).await.expect("send failed");
+                    if let Some((id, Message::None)) = self.app_to_winit_rx.recv().await {
+                        println!("Close Done: {}", id);
+                    }
+                });
+                self.id += 1;
+                self.close_requested = true;
+            }
+            WindowEvent::Resized(new_size) => {
+                let id = self.id;
+                self.rt.block_on(async {
+                    self.winit_to_app_tx.send((id, Message::Resize(new_size))).await.expect("send failed");
+                    if let Some((id, Message::None)) = self.app_to_winit_rx.recv().await {
+                        println!("Resize Done: {}", id);
+                    }
+                });
+                self.id += 1;
+            }
+            WindowEvent::KeyboardInput {
+                event: KeyEvent {
+                    logical_key: key,
+                    state: ElementState::Pressed,
+                    ..
+                },
+                ..
+            } => match key.as_ref() {
+                Key::Character("r") => {
+                    self.request_redraw = !self.request_redraw;
+                    println!("\nrequest_redraw: {}\n", self.request_redraw);
+                }
+                Key::Named(NamedKey::Escape) => {
+                    self.close_requested = true;
+                }
+                _ => (),
+            },
+            WindowEvent::RedrawRequested => {
+                self.rt.block_on(async {
+                    let id = self.id;
+                    self.winit_to_app_tx.send((id, Message::RequestRedraw)).await.expect("send failed");
+                    if let Some((id, Message::None)) = self.app_to_winit_rx.recv().await {
+                        println!("Redraw Done: {}", id);
+                    }
+                });
+
+                let window = self.window.as_ref().unwrap();
+                window.pre_present_notify();
+            }
+            _ => (),
+        }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if self.request_redraw && !self.wait_cancelled && !self.close_requested {
+            self.window.as_ref().unwrap().request_redraw();
+        }
+
+        if !self.wait_cancelled {
+            event_loop.set_control_flow(ControlFlow::WaitUntil(time::Instant::now() + WAIT_TIME));
+        }
+
+        if self.close_requested {
+            event_loop.exit();
+        }
+    }
+}
+
+async fn async_main(mut rx: mpsc::Receiver<(u64, Message)>, mut tx: mpsc::Sender<(u64, Message)>) {
+    let mut app = App {
+        window: None,
+        wgpu_instance: wgpu::Instance::default(),
+        renderer: None,
+    };
+
+    loop {
+        if let Some((id, msg)) = rx.recv().await {
+            match msg {
+                Message::RequestRedraw => {
+                    println!("request_redraw");
+
+                    let renderer = app.renderer.as_ref().unwrap();
+
+                    let frame = renderer.surface.get_current_texture().expect("Failed to acquire next swap chain texture");
+                    let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                    {
+                        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: None,
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                                    store: wgpu::StoreOp::Store,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        });
+                        render_pass.set_pipeline(&renderer.render_pipeline);
+                        render_pass.draw(0..3, 0..1);
+                    }
+
+                    renderer.queue.submit(Some(encoder.finish()));
+                    frame.present();
+
+                    tx.send((id, Message::None)).await.expect("send failed");
+                }
+                Message::Close => {
+                    println!("close");
+                    tx.send((id, Message::None)).await.expect("send failed");
+                    break;
+                }
+                Message::None => {
+                    println!("none");
+                }
+                Message::Resume(window) => {
+                    println!("Resumed");
+
+                    let size = window.inner_size();
+
+                    let surface = app.wgpu_instance.create_surface(window.clone()).unwrap();
+
+                    let adapter = app
+                        .wgpu_instance
+                        .request_adapter(&wgpu::RequestAdapterOptions {
+                            power_preference: wgpu::PowerPreference::default(),
+                            force_fallback_adapter: false,
+                            // Request an adapter which can render to our surface
+                            compatible_surface: Some(&surface),
+                        })
+                        .await
+                        .expect("Failed to find an appropriate adapter");
+
+                    // Create the logical device and command queue
+                    let (device, queue) = adapter
+                        .request_device(
+                            &wgpu::DeviceDescriptor {
+                                label: None,
+                                required_features: wgpu::Features::empty(),
+                                // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
+                                required_limits: wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
+                            },
+                            None,
+                        )
+                        .await
+                        .expect("Failed to create device");
+
+                    // Load the shaders from disk
+                    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                        label: None,
+                        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/shader.wgsl"))),
+                    });
+
+                    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                        label: None,
+                        bind_group_layouts: &[],
+                        push_constant_ranges: &[],
+                    });
+
+                    let swapchain_capabilities = surface.get_capabilities(&adapter);
+                    let swapchain_format = swapchain_capabilities.formats[0];
+
+                    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                        label: None,
+                        layout: Some(&pipeline_layout),
+                        vertex: wgpu::VertexState {
+                            module: &shader,
+                            entry_point: "vs_main",
+                            buffers: &[],
+                        },
+                        fragment: Some(wgpu::FragmentState {
+                            module: &shader,
+                            entry_point: "fs_main",
+                            targets: &[Some(swapchain_format.into())],
+                        }),
+                        primitive: wgpu::PrimitiveState::default(),
+                        depth_stencil: None,
+                        multisample: wgpu::MultisampleState::default(),
+                        multiview: None,
+                    });
+
+                    let config = surface.get_default_config(&adapter, size.width, size.height).unwrap();
+                    surface.configure(&device, &config);
+
+                    app.window = Some(window.clone());
+                    app.renderer = Some(RenderState {
+                        surface,
+                        device,
+                        render_pipeline,
+                        queue,
+                        config,
+                    });
+
+                    tx.send((id, Message::None)).await.expect("send failed");
+                }
+                Message::Resize(new_size) => {
+                    // Reconfigure the surface with the new size
+
+                    let renderer = app.renderer.as_mut().unwrap();
+
+                    renderer.config.width = new_size.width.max(1);
+                    renderer.config.height = new_size.height.max(1);
+                    renderer.surface.configure(&renderer.device, &renderer.config);
+
+                    // On macOS the window needs to be redrawn manually after resizing
+                    app.window.as_ref().unwrap().request_redraw();
+
+                    tx.send((id, Message::None)).await.expect("send failed");
+                }
+            }
+        }
+
+        println!("Message processed");
+    }
 }
