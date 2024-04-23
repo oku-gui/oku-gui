@@ -1,9 +1,9 @@
 #[derive(Debug, Clone, Copy)]
 pub struct Rectangle {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
 }
 
 impl Rectangle {
@@ -29,6 +29,13 @@ pub trait Surface {
 }
 
 pub trait Renderer {
+    // Surface Functions
+    fn surface_width(&self) -> f32;
+    fn surface_height(&self) -> f32;
+    fn present_surface(&mut self);
+    fn resize_surface(&mut self, width: f32, height: f32);
+    
+    
     fn draw_rect(&mut self, rectangle: Rectangle);
-    fn submit(&mut self, surface: Box<dyn Surface>);
+    fn submit(&mut self);
 }

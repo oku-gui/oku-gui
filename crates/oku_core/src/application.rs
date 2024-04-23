@@ -6,7 +6,7 @@ pub trait Application {
 }
 
 pub struct Props {
-    pub data: Box<dyn Any>,
+    pub data: Box<dyn Any + Send>,
 }
 
 impl Props {

@@ -24,15 +24,18 @@ use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
 use wgpu::{Device, Queue, RenderPipeline, Surface, SurfaceConfiguration};
+use crate::renderer::renderer::{Rectangle, Renderer};
+use crate::renderer::softbuffer::SoftBufferRenderer;
 
 const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 
-struct App<'a> {
+struct App {
     app: Box<dyn Application + Send>,
     window: Option<Arc<Window>>,
     wgpu_instance: wgpu::Instance,
-    renderer: Option<RenderState<'a>>,
+    renderer: Option<Box<dyn Renderer + Send>>
 }
+
 struct RenderState<'a> {
     surface: Surface<'a>,
     device: Device,
@@ -52,7 +55,7 @@ pub struct RenderContext {
     window: Rc<Window>,
 }
 
-struct ControlFlowDemo {
+struct OkuState {
     id: u64,
     rt: tokio::runtime::Runtime,
     request_redraw: bool,
@@ -60,7 +63,7 @@ struct ControlFlowDemo {
     close_requested: bool,
     window: Option<Arc<Window>>,
     app_to_winit_rx: mpsc::Receiver<(u64, Message)>,
-    winit_to_app_tx: mpsc::Sender<(u64, Message)>,
+    winit_to_app_tx: mpsc::Sender<(u64, Message)>
 }
 
 #[derive(Debug, Clone)]
@@ -84,7 +87,7 @@ pub fn oku_main(application: Box<dyn Application + Send>) {
         async_main(application, winit_to_app_rx, app_to_winit_tx).await;
     });
 
-    let mut app = ControlFlowDemo {
+    let mut app = OkuState {
         id: 0,
         rt,
         request_redraw: false,
@@ -92,13 +95,13 @@ pub fn oku_main(application: Box<dyn Application + Send>) {
         close_requested: false,
         window: None,
         app_to_winit_rx,
-        winit_to_app_tx,
+        winit_to_app_tx
     };
 
     event_loop.run_app(&mut app).expect("run_app failed");
 }
 
-impl ApplicationHandler for ControlFlowDemo {
+impl ApplicationHandler for OkuState {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
         //println!("new_events: {cause:?}");
 
@@ -203,7 +206,10 @@ impl ApplicationHandler for ControlFlowDemo {
         }
     }
 }
-
+unsafe impl Send for SoftBufferRenderer {
+    // Implement Send trait for SoftBufferRenderer
+    // Ensure that all fields are Send
+}
 async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Receiver<(u64, Message)>, mut tx: mpsc::Sender<(u64, Message)>) {
     let mut app = App {
         app: application,
@@ -218,32 +224,16 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                 Message::RequestRedraw => {
                     println!("request_redraw");
 
-                    let renderer = app.renderer.as_ref().unwrap();
-
-                    let frame = renderer.surface.get_current_texture().expect("Failed to acquire next swap chain texture");
-                    let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
-                    let mut encoder = renderer.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-                    {
-                        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: None,
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &view,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                                    store: wgpu::StoreOp::Store,
-                                },
-                            })],
-                            depth_stencil_attachment: None,
-                            timestamp_writes: None,
-                            occlusion_query_set: None,
-                        });
-                        render_pass.set_pipeline(&renderer.render_pipeline);
-                        render_pass.draw(0..3, 0..1);
-                    }
-
-                    renderer.queue.submit(Some(encoder.finish()));
-                    frame.present();
+                    let mut renderer = app.renderer.as_mut().unwrap();
+                    
+                    renderer.draw_rect(Rectangle {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 200.0,
+                        height: 200.0,
+                    });
+                    
+                    renderer.submit();
 
                     tx.send((id, Message::None)).await.expect("send failed");
                 }
@@ -260,89 +250,19 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
 
                     let size = window.inner_size();
 
-                    let surface = app.wgpu_instance.create_surface(window.clone()).unwrap();
-
-                    let adapter = app
-                        .wgpu_instance
-                        .request_adapter(&wgpu::RequestAdapterOptions {
-                            power_preference: wgpu::PowerPreference::default(),
-                            force_fallback_adapter: false,
-                            // Request an adapter which can render to our surface
-                            compatible_surface: Some(&surface),
-                        })
-                        .await
-                        .expect("Failed to find an appropriate adapter");
-
-                    // Create the logical device and command queue
-                    let (device, queue) = adapter
-                        .request_device(
-                            &wgpu::DeviceDescriptor {
-                                label: None,
-                                required_features: wgpu::Features::empty(),
-                                // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
-                                required_limits: wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
-                            },
-                            None,
-                        )
-                        .await
-                        .expect("Failed to create device");
-
-                    // Load the shaders from disk
-                    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                        label: None,
-                        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shaders/shader.wgsl"))),
-                    });
-
-                    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                        label: None,
-                        bind_group_layouts: &[],
-                        push_constant_ranges: &[],
-                    });
-
-                    let swapchain_capabilities = surface.get_capabilities(&adapter);
-                    let swapchain_format = swapchain_capabilities.formats[0];
-
-                    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                        label: None,
-                        layout: Some(&pipeline_layout),
-                        vertex: wgpu::VertexState {
-                            module: &shader,
-                            entry_point: "vs_main",
-                            buffers: &[],
-                        },
-                        fragment: Some(wgpu::FragmentState {
-                            module: &shader,
-                            entry_point: "fs_main",
-                            targets: &[Some(swapchain_format.into())],
-                        }),
-                        primitive: wgpu::PrimitiveState::default(),
-                        depth_stencil: None,
-                        multisample: wgpu::MultisampleState::default(),
-                        multiview: None,
-                    });
-
-                    let config = surface.get_default_config(&adapter, size.width, size.height).unwrap();
-                    surface.configure(&device, &config);
-
                     app.window = Some(window.clone());
-                    app.renderer = Some(RenderState {
-                        surface,
-                        device,
-                        render_pipeline,
-                        queue,
-                        config,
-                    });
+                    let a = Box::new(SoftBufferRenderer::new(window.clone(), size.width as f32, size.height as f32));
+                    app.renderer = Some(a);
 
                     tx.send((id, Message::None)).await.expect("send failed");
                 }
                 Message::Resize(new_size) => {
+
                     // Reconfigure the surface with the new size
 
                     let renderer = app.renderer.as_mut().unwrap();
 
-                    renderer.config.width = new_size.width.max(1);
-                    renderer.config.height = new_size.height.max(1);
-                    renderer.surface.configure(&renderer.device, &renderer.config);
+                    renderer.resize_surface(new_size.width.max(1) as f32, new_size.height.max(1) as f32);
 
                     // On macOS the window needs to be redrawn manually after resizing
                     app.window.as_ref().unwrap().request_redraw();
