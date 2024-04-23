@@ -27,7 +27,7 @@ pub struct WgpuRenderer<'a> {
 impl<'a> WgpuRenderer<'a> {
     pub(crate) async fn new(window: Arc<Window>) -> WgpuRenderer<'a> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
+            backends: wgpu::Backends::DX12 | wgpu::Backends::GL,
             ..Default::default()
         });
 
