@@ -1,25 +1,9 @@
 use glam;
-use std::collections::HashMap;
-use std::pin::Pin;
-use std::rc::Rc;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 use wgpu::util::DeviceExt;
-use winit::event::{ElementState, Event, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopBuilder};
-use winit::keyboard::{Key, NamedKey};
-use winit::window::{Window, WindowId};
+use winit::window::{Window};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Rectangle, Renderer};
-
-struct LogicalSize<P> {
-    width: P,
-    height: P,
-}
-
-struct PhysicalSize<P> {
-    width: P,
-    height: P,
-}
 
 pub struct WgpuRenderer<'a> {
     device: wgpu::Device,
@@ -285,7 +269,8 @@ impl Renderer for WgpuRenderer<'_> {
 
     fn resize_surface(&mut self, width: f32, height: f32) {
         self.surface_config.width = width as u32;
-        self.surface_config.width = height as u32;
+        self.surface_config.height = height as u32;
+        self.surface.configure(&self.device, &self.surface_config);
     }
 
     fn draw_rect(&mut self, rectangle: Rectangle, fill_color: Color) {
@@ -299,28 +284,14 @@ impl Renderer for WgpuRenderer<'_> {
         let bottom_left = [x, y + height, 0.0];
         let top_right = [x + width, y, 0.0];
         let bottom_right = [x + width, y + height, 0.0];
+        
+        let color = [fill_color.r, fill_color.g, fill_color.b, fill_color.a];
 
         self.rectangle_vertices.append(&mut vec![
-            Vertex {
-                position: top_left,
-                color: [0.5, 0.0, 0.2, 1.0],
-                tex_coords: [0.0, 0.0],
-            },
-            Vertex {
-                position: bottom_left,
-                color: [0.5, 0.0, 0.2, 1.0],
-                tex_coords: [0.0, 1.0],
-            },
-            Vertex {
-                position: top_right,
-                color: [0.5, 0.0, 0.5, 1.0],
-                tex_coords: [1.0, 0.0],
-            },
-            Vertex {
-                position: bottom_right,
-                color: [0.5, 0.0, 0.5, 1.0],
-                tex_coords: [1.0, 1.0],
-            }]
+            Vertex { position: top_left, color, tex_coords: [0.0, 0.0], },
+            Vertex { position: bottom_left, color, tex_coords: [0.0, 1.0], },
+            Vertex { position: top_right, color, tex_coords: [1.0, 0.0], },
+            Vertex { position: bottom_right, color, tex_coords: [1.0, 1.0], }]
         );
 
         let next_starting_index: u32 = (self.rectangle_indices.len() / 6) as u32 * 4;
@@ -357,9 +328,9 @@ impl Renderer for WgpuRenderer<'_> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
+                            r: 1.0,
+                            g: 1.0,
+                            b: 1.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,

@@ -46,4 +46,5 @@ impl Color {
         self.b as u8
     }
     pub const fn a_u8(&self) -> u8 { self.a as u8 }
+    
 }
