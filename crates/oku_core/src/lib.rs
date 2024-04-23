@@ -27,22 +27,14 @@ use wgpu::{Device, Queue, RenderPipeline, Surface, SurfaceConfiguration};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::renderer::softbuffer::SoftBufferRenderer;
+use crate::renderer::wgpu::WgpuRenderer;
 
 const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 
 struct App {
     app: Box<dyn Application + Send>,
     window: Option<Arc<Window>>,
-    wgpu_instance: wgpu::Instance,
     renderer: Option<Box<dyn Renderer + Send>>
-}
-
-struct RenderState<'a> {
-    surface: Surface<'a>,
-    device: Device,
-    render_pipeline: RenderPipeline,
-    queue: Queue,
-    config: SurfaceConfiguration,
 }
 
 pub struct RenderContext {
@@ -210,7 +202,6 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
     let mut app = App {
         app: application,
         window: None,
-        wgpu_instance: wgpu::Instance::default(),
         renderer: None,
     };
 
@@ -241,7 +232,8 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                     let size = window.inner_size();
 
                     app.window = Some(window.clone());
-                    let a = Box::new(SoftBufferRenderer::new(window.clone(), size.width as f32, size.height as f32));
+                    let a = Box::new(WgpuRenderer::new(window.clone()).await);
+                    //let a = Box::new(SoftBufferRenderer::new(window.clone(), size.width as f32, size.height as f32));
                     app.renderer = Some(a);
 
                     tx.send((id, Message::None)).await.expect("send failed");
