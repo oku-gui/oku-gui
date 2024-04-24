@@ -2,7 +2,7 @@ pub mod application;
 pub mod components;
 pub mod elements;
 //mod lib2;
-mod renderer;
+pub mod renderer;
 mod widget_id;
 
 use crate::application::Application;
@@ -23,6 +23,10 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
+use crate::elements::container::Container;
+use crate::elements::layout_context::{measure_content, LayoutContext};
+use crate::elements::standard_element::StandardElement;
+use crate::elements::style::Unit;
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::renderer::softbuffer::SoftwareRenderer;
@@ -35,17 +39,13 @@ struct App {
     app: Box<dyn Application + Send>,
     window: Option<Arc<Window>>,
     renderer: Option<Box<dyn Renderer + Send>>,
+    renderer_context: Option<RenderContext>,
+    element_tree: Option<Element>,
 }
 
 pub struct RenderContext {
     font_system: FontSystem,
     swash_cache: SwashCache,
-    surface: softbuffer::Surface<Rc<Window>, Rc<Window>>,
-    canvas: Pixmap,
-    cursor_x: f32,
-    cursor_y: f32,
-    debug_draw: bool,
-    window: Rc<Window>,
 }
 
 struct OkuState {
@@ -148,10 +148,6 @@ impl ApplicationHandler for OkuState {
                 },
                 ..
             } => match key.as_ref() {
-                Key::Character("r") => {
-                    self.request_redraw = !self.request_redraw;
-                    //println!("\nrequest_redraw: {}\n", self.request_redraw);
-                }
                 Key::Named(NamedKey::Escape) => {
                     self.close_requested = true;
                 }
@@ -196,6 +192,8 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
         app: application,
         window: None,
         renderer: None,
+        renderer_context: None,
+        element_tree: None,
     };
 
     loop {
@@ -205,8 +203,26 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                     let renderer = app.renderer.as_mut().unwrap();
 
                     renderer.surface_set_clear_color(Color::new_from_rgba_u8(22, 0, 100, 255));
-                    renderer.draw_rect(Rectangle::new(0.0, 0.0, 200.0, 200.0), Color::new_from_rgba_u8(0, 255, 0, 255));
-                    renderer.draw_rect(Rectangle::new(300.0, 30.0, 200.0, 200.0), Color::new_from_rgba_u8(0, 0, 255, 255));
+                    //renderer.draw_rect(Rectangle::new(0.0, 0.0, 200.0, 200.0), Color::new_from_rgba_u8(0, 255, 0, 255));
+                    //renderer.draw_rect(Rectangle::new(300.0, 30.0, 200.0, 200.0), Color::new_from_rgba_u8(0, 0, 255, 255));
+
+                    if let Some(mut root) = app.element_tree.clone() {
+                        let mut window_element = Container::new();
+
+                        window_element = window_element.width(Unit::Px(renderer.surface_width()));
+                        let computed_style = &root.computed_style_mut();
+
+                        // The root element should be 100% window width if the width is not already set.
+                        if computed_style.width.is_auto() {
+                            root.computed_style_mut().width = Unit::Px(renderer.surface_width());
+                        }
+
+                        window_element = window_element.add_child(root.clone());
+                        let mut window_element = Element::Container(window_element);
+
+                        layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);
+                        window_element.draw(renderer, app.renderer_context.as_mut().unwrap());
+                    }
 
                     renderer.submit();
 
@@ -218,9 +234,24 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                 }
                 Message::None => {}
                 Message::Resume(window) => {
+                    if app.element_tree.is_none() {
+                        let new_view = app.app.view();
+                        app.element_tree = Some(new_view);
+                    }
+
+                    if app.renderer_context.is_none() {
+                        let font_system = FontSystem::new();
+                        let swash_cache = SwashCache::new();
+                        let renderer_context = RenderContext {
+                            font_system,
+                            swash_cache,
+                        };
+                        app.renderer_context = Some(renderer_context);
+                    }
+
                     app.window = Some(window.clone());
-                    let renderer = Box::new(WgpuRenderer::new(window.clone()).await);
-                    //let renderer = Box::new(SoftwareRenderer::new(window.clone()));
+                    //let renderer = Box::new(WgpuRenderer::new(window.clone()).await);
+                    let renderer = Box::new(SoftwareRenderer::new(window.clone()));
                     app.renderer = Some(renderer);
 
                     tx.send((id, Message::None)).await.expect("send failed");
@@ -237,4 +268,15 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
             }
         }
     }
+}
+
+fn layout(_window_width: f32, _window_height: f32, render_context: &mut RenderContext, root_element: &mut Element) {
+    let mut taffy_tree: taffy::TaffyTree<LayoutContext> = taffy::TaffyTree::new();
+    let root_node = root_element.compute_layout(&mut taffy_tree, &mut render_context.font_system);
+
+    taffy_tree
+        .compute_layout_with_measure(root_node, taffy::Size::max_content(), |known_dimensions, available_space, _node_id, node_context| measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system))
+        .unwrap();
+
+    root_element.finalize_layout(&mut taffy_tree, root_node, 0.0, 0.0);
 }

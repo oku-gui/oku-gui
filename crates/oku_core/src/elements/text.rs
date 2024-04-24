@@ -2,11 +2,12 @@ use crate::elements::element::Element;
 use crate::elements::layout_context::{CosmicTextContent, LayoutContext};
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
+use crate::renderer::color::Color;
+use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
 use cosmic_text::{Attrs, Buffer, FontSystem, Metrics};
 use taffy::{NodeId, TaffyTree};
 use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect, Transform};
-use crate::renderer::color::Color;
 
 #[derive(Clone, Default)]
 pub struct Text {
@@ -65,13 +66,13 @@ impl Text {
         &mut self.id
     }
 
-    pub fn draw(&mut self, render_context: &mut RenderContext) {
+    pub fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
         let text_color = cosmic_text::Color::rgba(self.style.color.r_u8(), self.style.color.g_u8(), self.style.color.b_u8(), self.style.color.a_u8());
 
-        let mut paint = Paint {
+        /*let mut paint = Paint {
             anti_alias: false,
             ..Default::default()
-        };
+        };*/
 
         if self.text_buffer.is_none() {
             return;
@@ -81,8 +82,9 @@ impl Text {
         let element_y = self.computed_y();
         let text_buffer = self.text_buffer.as_mut().unwrap();
 
-        paint.set_color_rgba8(self.style.background.r_u8(), self.style.background.g_u8(), self.style.background.b_u8(), self.style.background.a_u8());
-        render_context.canvas.fill_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(), &paint, Transform::identity(), None);
+        //paint.set_color_rgba8(self.style.background.r_u8(), self.style.background.g_u8(), self.style.background.b_u8(), self.style.background.a_u8());
+        renderer.draw_rect(Rectangle::new(self.computed_x, self.computed_y, self.computed_width, self.computed_height), Color::new_from_rgba_u8(255, 255, 255, 255));
+        //render_context.canvas.fill_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(), &paint, Transform::identity(), None);
 
         text_buffer.draw(&mut render_context.font_system, &mut render_context.swash_cache, text_color, |x, y, w, h, color| {
             let r = color.r();
@@ -93,12 +95,13 @@ impl Text {
             let a2 = self.style.color.a / 255.0;
             let a = (a1 * a2 * 255.0) as u8;
 
-            paint.set_color_rgba8(r, g, b, a);
+            //paint.set_color_rgba8(r, g, b, a);
 
             let p_x: i32 = (element_x + self.computed_padding[3] + x as f32) as i32;
             let p_y: i32 = (element_y + self.computed_padding[0] + y as f32) as i32;
 
-            render_context.canvas.fill_rect(Rect::from_xywh(p_x as f32, p_y as f32, w as f32, h as f32).unwrap(), &paint, Transform::identity(), None);
+            renderer.draw_rect(Rectangle::new(p_x as f32, p_y as f32, w as f32, h as f32), Color::new_from_rgba_u8(r, g, b, a));
+            //render_context.canvas.fill_rect(Rect::from_xywh(p_x as f32, p_y as f32, w as f32, h as f32).unwrap(), &paint, Transform::identity(), None);
         });
     }
 
@@ -119,7 +122,7 @@ impl Text {
             dash: None,
         };
 
-        render_context.canvas.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
+        //render_context.canvas.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
 
         for child in self.children.iter_mut() {
             child.debug_draw(render_context);

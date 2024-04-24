@@ -1,6 +1,7 @@
 use crate::elements::element::Element;
 use crate::elements::layout_context::LayoutContext;
 use crate::elements::style::Style;
+use crate::renderer::renderer::Renderer;
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
@@ -16,7 +17,7 @@ pub trait StandardElement {
 
     fn id_mut(&mut self) -> &mut u64;
 
-    fn draw(&mut self, render_context: &mut RenderContext);
+    fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext);
 
     fn debug_draw(&mut self, render_context: &mut RenderContext);
 

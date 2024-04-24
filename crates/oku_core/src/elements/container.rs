@@ -2,11 +2,12 @@ use crate::elements::element::Element;
 use crate::elements::layout_context::LayoutContext;
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
+use crate::renderer::color::Color;
+use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
 use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect, Transform};
-use crate::renderer::color::Color;
 
 #[derive(Clone, Default)]
 pub struct Container {
@@ -57,15 +58,17 @@ impl StandardElement for Container {
         &mut self.id
     }
 
-    fn draw(&mut self, render_context: &mut RenderContext) {
+    fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
+        println!("Drawing container");
         let mut paint = Paint::default();
         paint.set_color_rgba8(self.style.background.r_u8(), self.style.background.g_u8(), self.style.background.b_u8(), self.style.background.a_u8());
         paint.anti_alias = true;
 
-        render_context.canvas.fill_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(), &paint, Transform::identity(), None);
+        //renderer.draw_rect(Rectangle::new(self.computed_x, self.computed_y, self.computed_width, self.computed_height), self.style.background);
+        //render_context.canvas.fill_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(), &paint, Transform::identity(), None);
 
         for child in self.children.iter_mut() {
-            child.draw(render_context);
+            child.draw(renderer, render_context);
         }
     }
 
@@ -89,7 +92,7 @@ impl StandardElement for Container {
             // dash: Some(StrokeDash::new(vec![2.0, 5.0], 5.0).unwrap()),
         };
 
-        render_context.canvas.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
+        //render_context.canvas.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
 
         for child in self.children.iter_mut() {
             child.debug_draw(render_context);
@@ -123,6 +126,8 @@ impl StandardElement for Container {
             let child2 = taffy_tree.child_at_index(root_node, index).unwrap();
             child.finalize_layout(taffy_tree, child2, self.computed_x, self.computed_y);
         }
+
+        taffy_tree.print_tree(root_node);
     }
 
     fn computed_style(&self) -> Style {

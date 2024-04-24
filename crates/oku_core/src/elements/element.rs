@@ -4,6 +4,7 @@ use crate::elements::layout_context::LayoutContext;
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::Style;
 use crate::elements::text::Text;
+use crate::renderer::renderer::Renderer;
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
@@ -32,13 +33,14 @@ impl StandardElement for Element {
         }
     }
 
-    fn draw(&mut self, render_context: &mut RenderContext) {
+    fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
         match self {
-            Element::Container(container) => container.draw(render_context),
-            Element::Text(text) => text.draw(render_context),
+            Element::Container(container) => container.draw(renderer, render_context),
+            Element::Text(text) => text.draw(renderer, render_context),
             Element::Empty(empty) => empty.draw(render_context),
         }
     }
+
     fn debug_draw(&mut self, render_context: &mut RenderContext) {
         match self {
             Element::Container(container) => container.debug_draw(render_context),
