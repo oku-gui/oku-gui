@@ -60,7 +60,7 @@ struct OkuState {
 enum Message {
     RequestRedraw,
     Close,
-    None,
+    Confirmation,
     Resume(Arc<Window>),
     Resize(PhysicalSize<u32>),
 }
@@ -161,7 +161,7 @@ impl OkuState {
         self.rt.block_on(async {
             self.winit_to_app_tx.send((id, wait_for_response, message)).await.expect("send failed");
             if wait_for_response {
-                if let Some((id, Message::None)) = self.app_to_winit_rx.recv().await {
+                if let Some((id, Message::Confirmation)) = self.app_to_winit_rx.recv().await {
                     assert_eq!(id, self.id, "Expected response message with id {}", self.id);
                 } else {
                     panic!("Expected response message");
@@ -174,7 +174,7 @@ impl OkuState {
 
 async fn send_response(id: u64, wait_for_response: bool, tx: &mpsc::Sender<(u64, Message)>) {
     if wait_for_response {
-        tx.send((id, Message::None)).await.expect("send failed");
+        tx.send((id, Message::Confirmation)).await.expect("send failed");
     }
 }
 
@@ -223,7 +223,7 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                     send_response(id, wait_for_response, &tx).await;
                     break;
                 }
-                Message::None => {}
+                Message::Confirmation => {}
                 Message::Resume(window) => {
                     if app.element_tree.is_none() {
                         let new_view = app.app.view();
