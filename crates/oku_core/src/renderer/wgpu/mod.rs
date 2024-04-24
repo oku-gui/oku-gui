@@ -352,10 +352,10 @@ impl Renderer for WgpuRenderer<'_> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: self.surface_clear_color.r as f64,
-                            g: self.surface_clear_color.g as f64,
-                            b: self.surface_clear_color.b as f64,
-                            a: self.surface_clear_color.a as f64,
+                            r: self.surface_clear_color.r as f64 / 255.0,
+                            g: self.surface_clear_color.g as f64 / 255.0,
+                            b: self.surface_clear_color.b as f64 / 255.0,
+                            a: self.surface_clear_color.a as f64 / 255.0,
                         }),
                         store: wgpu::StoreOp::Store,
                     },

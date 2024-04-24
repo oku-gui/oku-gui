@@ -83,7 +83,7 @@ impl Text {
         let text_buffer = self.text_buffer.as_mut().unwrap();
 
         //paint.set_color_rgba8(self.style.background.r_u8(), self.style.background.g_u8(), self.style.background.b_u8(), self.style.background.a_u8());
-        renderer.draw_rect(Rectangle::new(self.computed_x, self.computed_y, self.computed_width, self.computed_height), Color::new_from_rgba_u8(255, 255, 255, 255));
+        renderer.draw_rect(Rectangle::new(self.computed_x, self.computed_y, self.computed_width, self.computed_height), self.style.background);
         //render_context.canvas.fill_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(), &paint, Transform::identity(), None);
 
         text_buffer.draw(&mut render_context.font_system, &mut render_context.swash_cache, text_color, |x, y, w, h, color| {

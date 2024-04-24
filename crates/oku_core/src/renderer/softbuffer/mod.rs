@@ -1,11 +1,10 @@
-use std::num::NonZeroU32;
-use crate::renderer::renderer::{Rectangle, RenderCommand, Renderer, Surface};
-use std::rc::Rc;
-use std::sync::Arc;
-use softbuffer::Buffer;
-use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Pixmap, Rect, Transform};
-use winit::window::Window;
 use crate::renderer::color::Color;
+use crate::renderer::renderer::{Rectangle, RenderCommand, Renderer, Surface};
+use softbuffer::Buffer;
+use std::num::NonZeroU32;
+use std::sync::Arc;
+use tiny_skia::{Paint, Pixmap, Rect, Transform};
+use winit::window::Window;
 
 pub struct SoftwareRenderer {
     render_commands: Vec<RenderCommand>,
@@ -15,15 +14,14 @@ pub struct SoftwareRenderer {
     surface_width: f32,
     surface_height: f32,
     surface_clear_color: Color,
-    framebuffer: tiny_skia::Pixmap,
+    framebuffer: Pixmap,
 }
 
 impl SoftwareRenderer {
     pub(crate) fn new(window: Arc<Window>) -> Self {
-        
         let width = window.inner_size().width as f32;
         let height = window.inner_size().height as f32;
-        
+
         let context = softbuffer::Context::new(window.clone()).unwrap();
         let mut surface = softbuffer::Surface::new(&context, window.clone()).unwrap();
         surface.resize(NonZeroU32::new(width as u32).unwrap(), NonZeroU32::new(height as u32).unwrap()).expect("TODO: panic message");
@@ -44,7 +42,6 @@ fn draw_rect(canvas: &mut Pixmap, rectangle: Rectangle, fill_color: Color) {
     let mut paint = Paint::default();
     paint.set_color_rgba8(fill_color.r_u8(), fill_color.g_u8(), fill_color.b_u8(), fill_color.a_u8());
     paint.anti_alias = true;
-
 
     let rect = Rect::from_xywh(rectangle.x, rectangle.y, rectangle.width, rectangle.height).unwrap();
     canvas.fill_rect(rect, &paint, Transform::identity(), None);
@@ -95,7 +92,6 @@ impl Renderer for SoftwareRenderer {
         let buffer = self.copy_skia_buffer_to_softbuffer(self.surface_width, self.surface_height);
         buffer.present().unwrap();
     }
-
 }
 
 impl SoftwareRenderer {
