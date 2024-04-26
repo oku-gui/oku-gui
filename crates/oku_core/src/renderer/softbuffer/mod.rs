@@ -40,7 +40,7 @@ impl SoftwareRenderer {
 
 fn draw_rect(canvas: &mut Pixmap, rectangle: Rectangle, fill_color: Color) {
     let mut paint = Paint::default();
-    paint.colorspace = ColorSpace::SimpleSRGB;
+    paint.colorspace = ColorSpace::Linear;
     paint.set_color_rgba8(fill_color.r_u8(), fill_color.g_u8(), fill_color.b_u8(), fill_color.a_u8());
     paint.anti_alias = true;
 
