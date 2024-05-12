@@ -5,9 +5,9 @@ pub mod elements;
 pub mod renderer;
 mod widget_id;
 
+pub mod reactive;
 #[cfg(test)]
 mod tests;
-pub mod reactive;
 
 use crate::application::Application;
 use crate::elements::element::Element;
@@ -17,7 +17,7 @@ use std::time;
 use tokio::sync::mpsc;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
-use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
+use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
@@ -58,12 +58,20 @@ struct OkuState {
     oku_options: OkuOptions,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct MouseInput {
+    device_id: DeviceId,
+    state: ElementState,
+    button: MouseButton,
+}
+
 enum Message {
     RequestRedraw,
     Close,
     Confirmation,
     Resume(Arc<Window>, Option<Box<dyn Renderer + Send>>),
     Resize(PhysicalSize<u32>),
+    MouseInput(MouseInput),
 }
 
 #[derive(Default)]
@@ -134,6 +142,18 @@ impl ApplicationHandler for OkuState {
             WindowEvent::CloseRequested => {
                 self.send_message(Message::Close, true);
                 self.close_requested = true;
+            }
+            WindowEvent::MouseInput {
+                device_id,
+                state,
+                button,
+            } => {
+                let mouse_event = MouseInput {
+                    device_id,
+                    state,
+                    button,
+                };
+                self.send_message(Message::MouseInput(mouse_event), true);
             }
             WindowEvent::Resized(new_size) => {
                 self.send_message(Message::Resize(new_size), true);
@@ -276,6 +296,29 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                     app.window.as_ref().unwrap().request_redraw();
 
                     send_response(id, wait_for_response, &tx).await;
+                }
+                Message::MouseInput(mouse_input) => {
+                    println!("{:?}", mouse_input);
+                    send_response(id, wait_for_response, &tx).await;
+
+                    let root = app.element_tree.clone();
+                    let mut to_visit = Vec::<Element>::new();
+                    let mut traversal_history = Vec::<Element>::new();
+                    to_visit.push(root.clone().unwrap());
+                    traversal_history.push(root.unwrap());
+
+                    while let Some(element) = to_visit.pop() {
+                        for child in element.children() {
+                            to_visit.push(child.clone());
+                            traversal_history.push(child.clone());
+                        }
+                    }
+
+                    for element in traversal_history.iter().rev() {
+                        let mut element = element.clone();
+
+                        //element.handle_mouse_input(mouse_input);
+                    }
                 }
             }
         }
