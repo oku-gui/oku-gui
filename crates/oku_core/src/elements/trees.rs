@@ -35,14 +35,22 @@ pub fn diff_tree(old_tree: Option<&mut Element>, new_tree: Option<&mut Element>)
     old_queue.push(old_tree);
     new_queue.push(new_tree);
 
+    fn did_component_name_change(old_id: &str, new_id: &str) -> bool {
+        old_id == new_id
+    }
+
+    fn is_empty_component(id: &str) -> bool {
+        id == "Empty"
+    }
+
     while !old_queue.is_empty() && !new_queue.is_empty() {
         let old_current = old_queue.pop().unwrap();
         let new_current = new_queue.pop().unwrap();
 
-        if old_current.name() != new_current.name() && new_current.name() != "Empty" {
+        if did_component_name_change(old_current.name(), new_current.name()) && !is_empty_component(new_current.name()) {
             assign_tree_new_ids(new_current);
             continue;
-        } else if old_current.name() != new_current.name() && new_current.name() == "Empty" {
+        } else if did_component_name_change(old_current.name(), new_current.name()) && is_empty_component(new_current.name()) {
             *new_current.id_mut() = old_current.id();
             continue;
         } else {

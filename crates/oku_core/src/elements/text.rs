@@ -12,6 +12,7 @@ use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect, Transform};
 #[derive(Clone, Default)]
 pub struct Text {
     id: u64,
+    key: Option<String>,
     style: Style,
     children: Vec<Element>,
     text: String,
@@ -27,6 +28,7 @@ impl Text {
     pub fn new(text: String) -> Text {
         Text {
             id: u64::MAX,
+            key: None,
             style: Style {
                 ..Default::default()
             },
@@ -60,6 +62,10 @@ impl Text {
     }
     pub const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn key(&self) -> Option<String> {
+        self.key.clone()
     }
 
     pub fn id_mut(&mut self) -> &mut u64 {

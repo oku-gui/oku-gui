@@ -8,6 +8,7 @@ use taffy::{NodeId, TaffyTree};
 #[derive(Clone, Default)]
 pub struct Empty {
     id: u64,
+    key: Option<String>,
     children: Vec<Element>,
 }
 
@@ -15,6 +16,7 @@ impl Empty {
     pub fn new() -> Empty {
         Empty {
             id: u64::MAX,
+            key: None,
             children: vec![],
         }
     }
@@ -39,6 +41,10 @@ impl Empty {
 
     pub const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn key(&self) -> Option<String> {
+        self.key.clone()
     }
 
     pub fn id_mut(&mut self) -> &mut u64 {

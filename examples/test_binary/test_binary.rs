@@ -4,33 +4,14 @@ use oku::elements::container::Container;
 use oku::elements::element::Element;
 use oku::elements::text::Text;
 use oku_core::events::EventResult;
-use oku_core::reactive::reactive::Runtime;
 use oku_core::reactive::use_state::{use_click, use_state};
 use oku_core::OkuOptions;
-use oku_core::RendererType::{Software, Wgpu};
-use rand::random;
-use std::cell::RefCell;
-use std::rc::Rc;
-
-/*fn use_state<T: Clone>(value: T) -> (impl Fn() -> T, impl FnMut(T)) {
-    let val = Rc::new(RefCell::new(value));
-
-    let state = {
-        let val = val.clone();
-        move || -> T { val.borrow().clone() }
-    };
-
-    let set_state = move |v: T| {
-        val.replace(v);
-    };
-
-    (state, set_state)
-}*/
+use oku_core::RendererType::Wgpu;
 
 struct Test1 {}
 
 impl Component for Test1 {
-    fn view(&self, _props: Option<&Props>, _children: Vec<Element>) -> Element {
+    fn view(&self, _props: Option<&Props>, _children: Vec<Element>, key: Option<String>) -> Element {
         Element::Text(Text::new(String::from("Hello")))
     }
 }
@@ -38,9 +19,8 @@ impl Component for Test1 {
 struct Hello {}
 
 impl Component for Hello {
-    fn view(&self, props: Option<&Props>, children: Vec<Element>) -> Element {
-        let x = 5;
-        let (number, mut set_number) = use_state(x);
+    fn view(&self, props: Option<&Props>, children: Vec<Element>, key: Option<String>) -> Element {
+        let (number, mut set_number) = use_state(0);
 
         let num = number();
 
@@ -72,7 +52,7 @@ impl oku_core::application::Application for App {
 
         let test1 = Test1 {};
 
-        hello.view(Some(&hello_props), vec![test1.view(None, vec![])])
+        hello.view(Some(&hello_props), vec![test1.view(None, vec![], None)], None)
     }
 }
 

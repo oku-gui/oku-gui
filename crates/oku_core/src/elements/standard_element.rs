@@ -15,6 +15,8 @@ pub trait StandardElement {
 
     fn id(&self) -> u64;
 
+    fn key(&self) -> Option<String>;
+
     fn id_mut(&mut self) -> &mut u64;
 
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext);

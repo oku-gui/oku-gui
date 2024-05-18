@@ -25,6 +25,14 @@ impl StandardElement for Element {
         }
     }
 
+    fn key(&self) -> Option<String> {
+        match self {
+            Element::Container(container) => container.key(),
+            Element::Text(text) => text.key(),
+            Element::Empty(empty) => empty.key(),
+        }
+    }
+
     fn id_mut(&mut self) -> &mut u64 {
         match self {
             Element::Container(container) => container.id_mut(),
