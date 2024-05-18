@@ -5,7 +5,7 @@ use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Empty {
     id: u64,
     key: Option<String>,
@@ -67,5 +67,9 @@ impl Empty {
 
     pub fn computed_style_mut(&mut self) -> &mut Style {
         panic!("Empty cannot have a style");
+    }
+
+    pub fn in_bounds(&self, _x: f32, _y: f32) -> bool {
+        false
     }
 }

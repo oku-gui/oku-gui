@@ -41,6 +41,7 @@ struct App {
     renderer: Option<Box<dyn Renderer + Send>>,
     renderer_context: Option<RenderContext>,
     element_tree: Option<Element>,
+    mouse_position: (f32, f32),
 }
 
 pub struct RenderContext {
@@ -67,6 +68,12 @@ struct MouseInput {
     button: MouseButton,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct MouseMoved {
+    device_id: DeviceId,
+    position: (f64, f64),
+}
+
 enum Message {
     RequestRedraw,
     Close,
@@ -74,6 +81,7 @@ enum Message {
     Resume(Arc<Window>, Option<Box<dyn Renderer + Send>>),
     Resize(PhysicalSize<u32>),
     MouseInput(MouseInput),
+    MouseMoved(MouseMoved),
 }
 
 #[derive(Default)]
@@ -161,6 +169,18 @@ impl ApplicationHandler for OkuState {
                     }
                 }
             }
+            WindowEvent::CursorMoved {
+                device_id,
+                position,
+            } => {
+                self.send_message(
+                    Message::MouseMoved(MouseMoved {
+                        device_id,
+                        position: (position.x, position.y),
+                    }),
+                    true,
+                );
+            }
             WindowEvent::Resized(new_size) => {
                 self.send_message(Message::Resize(new_size), true);
             }
@@ -229,6 +249,7 @@ async fn send_response(id: u64, wait_for_response: bool, tx: &mpsc::Sender<(u64,
 use crate::events::EventResult;
 use std::borrow::BorrowMut;
 use std::ops::{Deref, DerefMut};
+use taffy::Position;
 
 async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Receiver<(u64, bool, Message)>, tx: mpsc::Sender<(u64, Message)>) {
     let mut app = App {
@@ -237,6 +258,7 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
         renderer: None,
         renderer_context: None,
         element_tree: None,
+        mouse_position: (0.0, 0.0),
     };
 
     loop {
@@ -249,7 +271,7 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                     renderer.draw_rect(Rectangle::new(0.0, 0.0, 200.0, 200.0), Color::new_from_rgba_u8(255, 0, 0, 255));
                     renderer.draw_rect(Rectangle::new(300.0, 30.0, 200.0, 200.0), Color::new_from_rgba_u8(0, 0, 255, 100));
 
-                    if let Some(mut root) = app.element_tree.clone() {
+                    if let Some(root) = app.element_tree.borrow_mut() {
                         let mut window_element = Container::new();
 
                         window_element = window_element.width(Unit::Px(renderer.surface_width()));
@@ -265,6 +287,8 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
 
                         layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);
                         window_element.draw(renderer, app.renderer_context.as_mut().unwrap());
+
+                        app.element_tree = Some(window_element);
                     }
 
                     renderer.submit();
@@ -307,8 +331,6 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                     send_response(id, wait_for_response, &tx).await;
                 }
                 Message::MouseInput(mouse_input) => {
-                    send_response(id, wait_for_response, &tx).await;
-
                     let root = app.element_tree.clone();
                     let mut to_visit = Vec::<Element>::new();
                     let mut traversal_history = Vec::<Element>::new();
@@ -323,7 +345,11 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                     }
 
                     for element in traversal_history.iter().rev() {
-                        let mut element = element.clone();
+                        let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
+                        if !in_bounds {
+                            continue;
+                        }
+
                         let mut ch = Runtime::get_click_handler(0).unwrap();
                         let res = ch((2, 2));
                         Runtime::set_click_handler(0, ch);
@@ -331,12 +357,17 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                         let new_view = app.app.view();
                         app.element_tree = Some(new_view);
                         app.window.as_ref().unwrap().request_redraw();
-                        //element.handle_mouse_input(mouse_input);
 
                         if let EventResult::Stop = res {
                             break;
                         }
                     }
+
+                    send_response(id, wait_for_response, &tx).await;
+                }
+                Message::MouseMoved(mouse_moved) => {
+                    app.mouse_position = (mouse_moved.position.0 as f32, mouse_moved.position.1 as f32);
+                    send_response(id, wait_for_response, &tx).await;
                 }
             }
         }

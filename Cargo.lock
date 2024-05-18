@@ -1322,6 +1322,7 @@ dependencies = [
  "glam",
  "image",
  "log",
+ "once_cell",
  "softbuffer",
  "taffy",
  "tiny-skia 0.11.4 (git+https://github.com/RazrFalcon/tiny-skia?rev=9b673e6c14e5e0c3f98413f8fa7e3a6cb315183b)",

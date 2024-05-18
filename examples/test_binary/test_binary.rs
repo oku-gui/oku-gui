@@ -26,6 +26,7 @@ impl Component for Hello {
 
         use_click(Box::new(move |click: (u32, u32)| {
             set_number(num + 1);
+            println!("Clicked! {}", num);
 
             EventResult::Stop
         }));

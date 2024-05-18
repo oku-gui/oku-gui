@@ -28,4 +28,6 @@ pub trait StandardElement {
 
     fn computed_style(&self) -> Style;
     fn computed_style_mut(&mut self) -> &mut Style;
+
+    fn in_bounds(&self, x: f32, y: f32) -> bool;
 }

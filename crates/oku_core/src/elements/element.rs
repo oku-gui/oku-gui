@@ -9,7 +9,7 @@ use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Element {
     Container(Container),
     Text(Text),
@@ -109,6 +109,14 @@ impl StandardElement for Element {
             Element::Container(container) => container.finalize_layout(taffy_tree, root_node, x, y),
             Element::Text(text) => text.finalize_layout(taffy_tree, root_node, x, y),
             Element::Empty(_) => {}
+        }
+    }
+
+    fn in_bounds(&self, x: f32, y: f32) -> bool {
+        match self {
+            Element::Container(container) => container.in_bounds(x, y),
+            Element::Text(text) => text.in_bounds(x, y),
+            Element::Empty(empty) => empty.in_bounds(x, y),
         }
     }
 }
