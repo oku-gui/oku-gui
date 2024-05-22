@@ -243,6 +243,7 @@ impl<'a> WgpuRenderer<'a> {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
 
         WgpuRenderer {
@@ -362,7 +363,6 @@ impl Renderer for WgpuRenderer<'_> {
             let r = self.surface_clear_color.r / 255.0;
             let g = self.surface_clear_color.g / 255.0;
             let b = self.surface_clear_color.b / 255.0;
-
 
             let mut _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
