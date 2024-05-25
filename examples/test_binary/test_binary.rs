@@ -4,7 +4,7 @@ use oku::elements::container::Container;
 use oku::elements::element::Element;
 use oku::elements::text::Text;
 use oku_core::events::EventResult;
-use oku_core::reactive::use_state::{use_click, use_state};
+use oku_core::reactive::reactive;
 use oku_core::OkuOptions;
 use oku_core::RendererType::Wgpu;
 
@@ -20,19 +20,14 @@ struct Hello {}
 
 impl Component for Hello {
     fn view(&self, props: Option<&Props>, children: Vec<Element>, key: Option<String>) -> Element {
-        let (number, mut set_number) = use_state(0);
-
-        let num = number();
-
-        use_click(Box::new(move |click: (u32, u32)| {
-            set_number(num + 1);
-            println!("Clicked! {}", num);
-
-            EventResult::Stop
-        }));
-
         // let my_data = props.unwrap().get_data::<u32>().unwrap();
-        let mut container = Container::new().add_child(Element::Text(Text::new(format!("Hello, world! {}", num.clone()))));
+        let mut container = Container::new().add_child(Element::Text(Text::new(format!("Hello, world! {}", 5))));
+
+        let key = 1;
+        let value = 5u64;
+        reactive::Runtime::set_state(key, value);
+
+        let x: u64 = reactive::Runtime::get_state(key).unwrap();
 
         for child in children {
             container = container.add_child(child);

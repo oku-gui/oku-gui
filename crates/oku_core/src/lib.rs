@@ -350,17 +350,17 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                             continue;
                         }
 
-                        let mut ch = Runtime::get_click_handler(0).unwrap();
+                        /*let mut ch = Runtime::get_click_handler(0).unwrap();
                         let res = ch((2, 2));
-                        Runtime::set_click_handler(0, ch);
+                        Runtime::set_click_handler(0, ch);*/
 
                         let new_view = app.app.view();
                         app.element_tree = Some(new_view);
                         app.window.as_ref().unwrap().request_redraw();
 
-                        if let EventResult::Stop = res {
+                        /*if let EventResult::Stop = res {
                             break;
-                        }
+                        }*/
                     }
 
                     send_response(id, wait_for_response, &tx).await;
