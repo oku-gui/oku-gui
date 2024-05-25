@@ -18,16 +18,16 @@ impl Component for Test1 {
 
 struct Hello {}
 
-impl Component for Hello {
+impl Component<u64> for Hello {
     fn view(&self, props: Option<&Props>, children: Vec<Element>, key: Option<String>) -> Element {
-        // let my_data = props.unwrap().get_data::<u32>().unwrap();
         let mut container = Container::new().add_child(Element::Text(Text::new(format!("Hello, world! {}", 5))));
 
         let key = 1;
         let value = 5u64;
-        reactive::Runtime::set_state(key, value);
 
-        let x: u64 = reactive::Runtime::get_state(key).unwrap();
+        self.set_state(5);
+        let x = self.get_state().unwrap();
+        println!("x: {}", x);
 
         for child in children {
             container = container.add_child(child);
