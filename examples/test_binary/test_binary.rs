@@ -7,11 +7,12 @@ use oku_core::events::EventResult;
 use oku_core::reactive::reactive;
 use oku_core::OkuOptions;
 use oku_core::RendererType::Wgpu;
+use std::sync::Arc;
 
 struct Test1 {}
 
 impl Component for Test1 {
-    fn view(&self, _props: Option<&Props>, _children: Vec<Element>, key: Option<String>) -> Element {
+    fn view(&self, _props: Option<&Props>, key: Option<String>) -> Element {
         Element::Text(Text::new(String::from("Hello")))
     }
 }
@@ -19,7 +20,7 @@ impl Component for Test1 {
 struct Hello {}
 
 impl Component<u64> for Hello {
-    fn view(&self, props: Option<&Props>, children: Vec<Element>, key: Option<String>) -> Element {
+    fn view(&self, props: Option<&Props>, key: Option<String>) -> Element {
         let mut container = Container::new().add_child(Element::Text(Text::new(format!("Hello, world! {}", 5))));
 
         let key = 1;
@@ -27,13 +28,21 @@ impl Component<u64> for Hello {
 
         self.set_state(5);
         let x = self.get_state().unwrap();
-        println!("x: {}", x);
+        //println!("x: {}", x);
 
-        for child in children {
+        /*for child in children {
             container = container.add_child(child);
-        }
+        }*/
 
-        Element::Container(container)
+        let mut custom_component = oku::elements::component::Component::new();
+        custom_component = custom_component.add_child(Element::Container(container));
+
+        custom_component.add_update_handler(Arc::new(|msg, state| {
+            println!("msg: {:?}", 2);
+            println!("state: {:?}", 2);
+        }));
+
+        Element::Component(custom_component)
     }
 }
 
@@ -48,7 +57,7 @@ impl oku_core::application::Application for App {
 
         let test1 = Test1 {};
 
-        hello.view(Some(&hello_props), vec![test1.view(None, vec![], None)], None)
+        hello.view(Some(&hello_props), None)
     }
 }
 

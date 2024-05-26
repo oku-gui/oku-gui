@@ -286,6 +286,7 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                         let mut window_element = Element::Container(window_element);
 
                         layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);
+
                         window_element.draw(renderer, app.renderer_context.as_mut().unwrap());
 
                         app.element_tree = Some(window_element);
@@ -353,6 +354,15 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                         /*let mut ch = Runtime::get_click_handler(0).unwrap();
                         let res = ch((2, 2));
                         Runtime::set_click_handler(0, ch);*/
+
+                        match element {
+                            Element::Component(component) => {
+                                println!("Calling component click");
+                                let update = component.update.clone();
+                                update(Box::new(()), Box::new(()));
+                            }
+                            _ => {}
+                        }
 
                         let new_view = app.app.view();
                         app.element_tree = Some(new_view);

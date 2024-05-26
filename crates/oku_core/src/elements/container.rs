@@ -6,10 +6,12 @@ use crate::renderer::color::Color;
 use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
 use cosmic_text::FontSystem;
+use std::any::Any;
+use std::sync::Arc;
 use taffy::{NodeId, TaffyTree};
 use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect};
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct Container {
     id: u64,
     key: Option<String>,
@@ -142,6 +144,10 @@ impl StandardElement for Container {
 
     fn in_bounds(&self, x: f32, y: f32) -> bool {
         x >= self.computed_x && x <= self.computed_x + self.computed_width && y >= self.computed_y && y <= self.computed_y + self.computed_height
+    }
+
+    fn add_update_handler(&mut self, update: Arc<fn(Box<dyn Any>, Box<dyn Any>)>) {
+        todo!()
     }
 }
 

@@ -4,6 +4,8 @@ use crate::elements::style::Style;
 use crate::renderer::renderer::Renderer;
 use crate::RenderContext;
 use cosmic_text::FontSystem;
+use std::any::Any;
+use std::sync::Arc;
 use taffy::{NodeId, TaffyTree};
 
 pub trait StandardElement {
@@ -30,4 +32,5 @@ pub trait StandardElement {
     fn computed_style_mut(&mut self) -> &mut Style;
 
     fn in_bounds(&self, x: f32, y: f32) -> bool;
+    fn add_update_handler(&mut self, update: Arc<fn(msg: Box<dyn Any>, state: Box<dyn Any>)>);
 }

@@ -1,3 +1,4 @@
+pub mod component;
 pub mod container;
 pub mod element;
 pub mod empty;

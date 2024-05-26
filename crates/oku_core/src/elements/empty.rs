@@ -5,7 +5,7 @@ use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct Empty {
     id: u64,
     key: Option<String>,
