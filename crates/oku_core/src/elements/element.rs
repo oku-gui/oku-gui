@@ -147,7 +147,7 @@ impl StandardElement for Element {
             Element::Component(component) => component.in_bounds(x, y),
         }
     }
-    fn add_update_handler(&mut self, update: Arc<fn(msg: Message, state: Box<dyn Any>)>) {
+    fn add_update_handler(&mut self, update: Arc<fn(msg: Message, state: Box<dyn Any>, id: u64)>) {
         if let Element::Component(component) = self {
             component.add_update_handler(update);
         };

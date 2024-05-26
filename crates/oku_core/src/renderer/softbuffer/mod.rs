@@ -1,5 +1,5 @@
 use crate::renderer::color::Color;
-use crate::renderer::renderer::{Rectangle, RenderCommand, Renderer, Surface};
+use crate::renderer::renderer::{Rectangle, RenderCommand, Renderer};
 use softbuffer::Buffer;
 use std::num::NonZeroU32;
 use std::sync::Arc;

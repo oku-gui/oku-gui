@@ -4,6 +4,7 @@ use crate::elements::style::Style;
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
+use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Empty {
@@ -15,7 +16,7 @@ pub struct Empty {
 impl Empty {
     pub fn new() -> Empty {
         Empty {
-            id: u64::MAX,
+            id: create_unique_widget_id(),
             key: None,
             children: vec![],
         }

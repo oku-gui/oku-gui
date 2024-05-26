@@ -7,7 +7,8 @@ use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
 use cosmic_text::{Attrs, Buffer, FontSystem, Metrics};
 use taffy::{NodeId, TaffyTree};
-use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect, Transform};
+use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect};
+use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Text {
@@ -27,7 +28,7 @@ pub struct Text {
 impl Text {
     pub fn new(text: String) -> Text {
         Text {
-            id: u64::MAX,
+            id: create_unique_widget_id(),
             key: None,
             style: Style {
                 ..Default::default()
@@ -121,15 +122,7 @@ impl Text {
 
         let mut path_builder = PathBuilder::new();
         path_builder.push_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap());
-        let path = path_builder.finish().unwrap();
-
-        let stroke = tiny_skia::Stroke {
-            width: 3.0,
-            miter_limit: 100.0,
-            line_cap: LineCap::Butt,
-            line_join: LineJoin::Miter,
-            dash: None,
-        };
+        path_builder.finish().unwrap();
 
         //render_context.canvas.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
 

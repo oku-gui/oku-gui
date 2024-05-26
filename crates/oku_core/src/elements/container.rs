@@ -9,8 +9,9 @@ use cosmic_text::FontSystem;
 use std::any::Any;
 use std::sync::Arc;
 use taffy::{NodeId, TaffyTree};
-use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect};
+use tiny_skia::{Paint, PathBuilder, Rect};
 use crate::events::Message;
+use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Container {
@@ -28,7 +29,7 @@ pub struct Container {
 impl Container {
     pub fn new() -> Container {
         Container {
-            id: u64::MAX,
+            id: create_unique_widget_id(),
             key: None,
             style: Style {
                 ..Default::default()
@@ -91,18 +92,7 @@ impl StandardElement for Container {
 
         let mut path_builder = PathBuilder::new();
         path_builder.push_rect(Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap());
-        let path = path_builder.finish().unwrap();
-
-        let stroke = tiny_skia::Stroke {
-            width: 3.0,
-            miter_limit: 100.0,
-            line_cap: LineCap::Butt,
-            line_join: LineJoin::Miter,
-
-            dash: None,
-            // Dashed lines
-            // dash: Some(StrokeDash::new(vec![2.0, 5.0], 5.0).unwrap()),
-        };
+        path_builder.finish().unwrap();
 
         //render_context.canvas.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
 
@@ -151,7 +141,7 @@ impl StandardElement for Container {
         x >= self.computed_x && x <= self.computed_x + self.computed_width && y >= self.computed_y && y <= self.computed_y + self.computed_height
     }
 
-    fn add_update_handler(&mut self, update: Arc<fn(Message, Box<dyn Any>)>) {
+    fn add_update_handler(&mut self, update: Arc<fn(Message, Box<dyn Any>, id: u64)>) {
         todo!()
     }
 }

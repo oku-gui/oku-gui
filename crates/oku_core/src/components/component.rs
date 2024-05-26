@@ -1,6 +1,5 @@
 use crate::application::Props;
 use crate::elements::element::Element;
-use crate::reactive::reactive;
 use crate::reactive::reactive::RUNTIME;
 
 pub trait Component<State = (), Message = ()>

@@ -10,7 +10,6 @@ pub mod reactive;
 #[cfg(test)]
 mod tests;
 
-use std::any::Any;
 use crate::application::Application;
 use crate::elements::element::Element;
 use cosmic_text::{FontSystem, SwashCache};
@@ -28,9 +27,8 @@ use crate::elements::container::Container;
 use crate::elements::layout_context::{measure_content, LayoutContext};
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::Unit;
-use crate::reactive::reactive::Runtime;
 use crate::renderer::color::Color;
-use crate::renderer::renderer::{Rectangle, Renderer};
+use crate::renderer::renderer::{Renderer};
 use crate::renderer::softbuffer::SoftwareRenderer;
 use crate::renderer::wgpu::WgpuRenderer;
 const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
@@ -248,9 +246,8 @@ async fn send_response(id: u64, wait_for_response: bool, tx: &mpsc::Sender<(u64,
         tx.send((id, InternalMessage::Confirmation)).await.expect("send failed");
     }
 }
-use crate::events::{ClickMessage, EventResult, Message};
-use std::borrow::BorrowMut;
-use std::ops::{Deref, DerefMut};
+use crate::events::{ClickMessage};
+use crate::widget_id::reset_unique_widget_id;
 
 async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Receiver<(u64, bool, InternalMessage)>, tx: mpsc::Sender<(u64, InternalMessage)>) {
     let mut app = Box::new(App {
@@ -268,12 +265,14 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                 InternalMessage::RequestRedraw => {
                     let renderer = app.renderer.as_mut().unwrap();
 
+                    reset_unique_widget_id();
+                    
                     renderer.surface_set_clear_color(Color::new_from_rgba_u8(255, 255, 255, 255));
 
                     let mut root = app.app.view();
                     let mut window_element = Container::new();
-                    let mut window_key = window_element.key_mut();
-                    window_key = &mut Some("window".to_string());
+                    //let mut window_key = window_element.key_mut();
+                    //window_key = &mut Some("window".to_string());
 
                     window_element = window_element.width(Unit::Px(renderer.surface_width()));
 
@@ -304,6 +303,7 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                 InternalMessage::Confirmation => {}
                 InternalMessage::Resume(window, renderer) => {
                     if app.element_tree.is_none() {
+                        reset_unique_widget_id();
                         let new_view = app.app.view();
                         app.element_tree = Some(new_view);
                     }
@@ -358,7 +358,6 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
 
                         match element {
                             Element::Component(component) => {
-                                println!("Calling component click");
                                 let update = component.update.clone();
 
                                 let oku_message = events::Message::OkuMessage(
@@ -369,14 +368,12 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                                   })
                                 );
 
-                                update(oku_message, Box::new(4));
+                                update(oku_message, Box::new(4), component.id());
 
                             }
                             _ => {}
                         }
-
-                       let new_view = app.app.view();
-                       app.element_tree = Some(new_view);
+                        
                        app.window.as_ref().unwrap().request_redraw();
 
                         /*if let EventResult::Stop = res {

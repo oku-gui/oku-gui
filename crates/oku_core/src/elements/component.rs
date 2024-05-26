@@ -1,6 +1,4 @@
-use crate::elements::container::Container;
 use crate::elements::element::Element;
-use crate::elements::empty::Empty;
 use crate::elements::layout_context::LayoutContext;
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::Style;
@@ -11,20 +9,21 @@ use std::any::Any;
 use std::sync::Arc;
 use taffy::{NodeId, TaffyTree};
 use crate::events::Message;
+use crate::widget_id::create_unique_widget_id;
 
-fn default_update(msg: Message, state: Box<dyn Any>) {}
+fn default_update(_msg: Message, _state: Box<dyn Any>, id: u64) {}
 
 #[derive(Clone, Debug)]
 pub struct Component {
     id: u64,
     key: Option<String>,
     children: Vec<Element>,
-    pub update: Arc<fn(msg: Message, state: Box<dyn Any>)>,
+    pub update: Arc<fn(msg: Message, state: Box<dyn Any>, id: u64)>,
 }
 impl Component {
     pub fn new() -> Component {
         Component {
-            id: u64::MAX,
+            id: create_unique_widget_id(),
             key: None,
             children: vec![],
             update: Arc::new(default_update),
@@ -92,7 +91,7 @@ impl Component {
         self.children[0].in_bounds(x, y)
     }
 
-    pub fn add_update_handler(&mut self, update: Arc<fn(msg: Message, state: Box<dyn Any>)>) {
+    pub fn add_update_handler(&mut self, update: Arc<fn(msg: Message, state: Box<dyn Any>, id: u64)>) {
         self.update = update;
     }
 }

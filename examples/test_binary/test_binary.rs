@@ -11,6 +11,7 @@ use oku_core::reactive::reactive::RUNTIME;
 use oku_core::OkuOptions;
 use oku_core::RendererType::Wgpu;
 use std::sync::Arc;
+use oku_core::elements::standard_element::StandardElement;
 
 struct Test1 {}
 
@@ -24,13 +25,15 @@ struct Hello {}
 
 impl Component<u64, u64> for Hello {
     fn view(&self, props: Option<&Props>, key: Option<String>) -> Element {
-        if RUNTIME.get_state::<u32>(0).is_none() {
-            RUNTIME.set_state(0, 0u32);
+        if RUNTIME.get_state::<u32>(3).is_none() {
+            RUNTIME.set_state(3, 0u32);
         }
 
-        let x: u32 = RUNTIME.get_state(0).unwrap();
+        let x: u32 = RUNTIME.get_state(3).unwrap();
         let mut container = Container::new().add_child(Element::Text(Text::new(format!("Counter: {}", x))));
 
+        println!("here: {}", container.id());
+        
         container = container.justify_content(JustifyContent::Center);
         container = container.align_items(AlignItems::Center);
         container = container.flex_direction(FlexDirection::Column);
@@ -38,16 +41,13 @@ impl Component<u64, u64> for Hello {
         let mut custom_component = oku::elements::component::Component::new();
         custom_component = custom_component.add_child(Element::Container(container));
 
-        custom_component.add_update_handler(Arc::new(|msg, state| {
-            println!("msg: {:?}", 2);
-            println!("state: {:?}", 2);
-
-            let mut example: u64 = 234;
-
-            Self::update(example, &mut example);
-
-            let x: u32 = RUNTIME.get_state(0).unwrap();
-            RUNTIME.set_state(0, x + 1);
+        custom_component.add_update_handler(Arc::new(|msg, state, id: u64| {
+            //let mut example: u64 = 234;
+            //Self::update(example, &mut example);
+            
+            println!("{}", id);
+            let x: u32 = RUNTIME.get_state(id).unwrap();
+            RUNTIME.set_state(id, x + 1);
         }));
 
         Element::Component(custom_component)

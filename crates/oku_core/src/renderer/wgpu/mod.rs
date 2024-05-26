@@ -1,10 +1,9 @@
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Rectangle, Renderer};
 use glam;
-use std::mem::size_of;
 use std::sync::Arc;
 use wgpu::util::DeviceExt;
-use wgpu::{BlendState, CompositeAlphaMode, PresentMode};
+use wgpu::{CompositeAlphaMode, PresentMode};
 use winit::window::Window;
 
 pub struct WgpuRenderer<'a> {
@@ -54,7 +53,7 @@ impl<'a> WgpuRenderer<'a> {
             .unwrap();
 
         let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(surface_caps.formats[0]);
+        surface_caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(surface_caps.formats[0]);
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: wgpu::TextureFormat::Rgba8Unorm,
@@ -278,7 +277,6 @@ impl Renderer for WgpuRenderer<'_> {
     }
 
     fn resize_surface(&mut self, width: f32, height: f32) {
-        //println!("{}, {}", width, height);
         self.surface_config.width = width as u32;
         self.surface_config.height = height as u32;
         self.surface.configure(&self.device, &self.surface_config);
@@ -353,8 +351,8 @@ impl Renderer for WgpuRenderer<'_> {
         let output = self.surface.get_current_texture().unwrap();
         let texture_view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let width = output.texture.width() as f32;
-        let height = output.texture.height() as f32;
+        // let width = output.texture.width() as f32;
+        // let height = output.texture.height() as f32;
 
         {
             //let r = ((self.surface_clear_color.r / 255.0 + 0.055) / 1.055).powf(2.4);
