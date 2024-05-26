@@ -18,5 +18,5 @@ where
     }
 
     #[allow(unused_variables)]
-    fn update(&self, message: Message, state: &mut State) {}
+    fn update(message: Message, state: &mut State) {}
 }

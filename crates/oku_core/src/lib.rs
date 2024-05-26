@@ -267,9 +267,7 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
                 Message::RequestRedraw => {
                     let renderer = app.renderer.as_mut().unwrap();
 
-                    renderer.surface_set_clear_color(Color::new_from_rgba_u8(0, 100, 0, 255));
-                    renderer.draw_rect(Rectangle::new(0.0, 0.0, 200.0, 200.0), Color::new_from_rgba_u8(255, 0, 0, 255));
-                    renderer.draw_rect(Rectangle::new(300.0, 30.0, 200.0, 200.0), Color::new_from_rgba_u8(0, 0, 255, 100));
+                    renderer.surface_set_clear_color(Color::new_from_rgba_u8(255, 255, 255, 255));
 
                     if let Some(root) = app.element_tree.borrow_mut() {
                         let mut window_element = Container::new();

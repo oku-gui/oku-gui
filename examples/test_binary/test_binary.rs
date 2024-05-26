@@ -3,6 +3,7 @@ use oku::components::component::Component;
 use oku::elements::container::Container;
 use oku::elements::element::Element;
 use oku::elements::text::Text;
+use oku_core::elements::style::{AlignItems, FlexDirection, JustifyContent, Unit};
 use oku_core::events::EventResult;
 use oku_core::reactive::reactive;
 use oku_core::reactive::reactive::RUNTIME;
@@ -20,14 +21,18 @@ impl Component for Test1 {
 
 struct Hello {}
 
-impl Component<u64> for Hello {
+impl Component<u64, u64> for Hello {
     fn view(&self, props: Option<&Props>, key: Option<String>) -> Element {
         if RUNTIME.get_state::<u32>(0).is_none() {
             RUNTIME.set_state(0, 0u32);
         }
 
         let x: u32 = RUNTIME.get_state(0).unwrap();
-        let container = Container::new().add_child(Element::Text(Text::new(format!("Hello, world! {}", x))));
+        let mut container = Container::new().add_child(Element::Text(Text::new(format!("Counter: {}", x))));
+
+        container = container.justify_content(JustifyContent::Center);
+        container = container.align_items(AlignItems::Center);
+        container = container.flex_direction(FlexDirection::Column);
 
         let mut custom_component = oku::elements::component::Component::new();
         custom_component = custom_component.add_child(Element::Container(container));
@@ -36,12 +41,18 @@ impl Component<u64> for Hello {
             println!("msg: {:?}", 2);
             println!("state: {:?}", 2);
 
+            let mut example: u64 = 234;
+
+            Self::update(example, &mut example);
+
             let x: u32 = RUNTIME.get_state(0).unwrap();
             RUNTIME.set_state(0, x + 1);
         }));
 
         Element::Component(custom_component)
     }
+
+    fn update(message: u64, state: &mut u64) {}
 }
 
 struct App {}
@@ -52,8 +63,6 @@ impl oku_core::application::Application for App {
         let hello_props = Props {
             data: Box::new(12_u32),
         };
-
-        let test1 = Test1 {};
 
         hello.view(Some(&hello_props), None)
     }
