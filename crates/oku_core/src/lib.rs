@@ -252,14 +252,14 @@ use std::ops::{Deref, DerefMut};
 use taffy::Position;
 
 async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Receiver<(u64, bool, Message)>, tx: mpsc::Sender<(u64, Message)>) {
-    let mut app = App {
+    let mut app = Box::new(App {
         app: application,
         window: None,
         renderer: None,
         renderer_context: None,
         element_tree: None,
         mouse_position: (0.0, 0.0),
-    };
+    });
 
     loop {
         if let Some((id, wait_for_response, msg)) = rx.recv().await {
@@ -269,26 +269,25 @@ async fn async_main(application: Box<dyn Application + Send>, mut rx: mpsc::Rece
 
                     renderer.surface_set_clear_color(Color::new_from_rgba_u8(255, 255, 255, 255));
 
-                    if let Some(root) = app.element_tree.borrow_mut() {
-                        let mut window_element = Container::new();
+                    let mut root = app.app.view();
+                    let mut window_element = Container::new();
 
-                        window_element = window_element.width(Unit::Px(renderer.surface_width()));
-                        let computed_style = &root.computed_style_mut();
+                    window_element = window_element.width(Unit::Px(renderer.surface_width()));
+                    let computed_style = root.computed_style_mut();
 
-                        // The root element should be 100% window width if the width is not already set.
-                        if computed_style.width.is_auto() {
-                            root.computed_style_mut().width = Unit::Px(renderer.surface_width());
-                        }
-
-                        window_element = window_element.add_child(root.clone());
-                        let mut window_element = Element::Container(window_element);
-
-                        layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);
-
-                        window_element.draw(renderer, app.renderer_context.as_mut().unwrap());
-
-                        app.element_tree = Some(window_element);
+                    // The root element should be 100% window width if the width is not already set.
+                    if computed_style.width.is_auto() {
+                        root.computed_style_mut().width = Unit::Px(renderer.surface_width());
                     }
+
+                    window_element = window_element.add_child(root.clone());
+                    let mut window_element = Element::Container(window_element);
+
+                    layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);
+
+                    window_element.draw(renderer, app.renderer_context.as_mut().unwrap());
+
+                    app.element_tree = Some(window_element);
 
                     renderer.submit();
 

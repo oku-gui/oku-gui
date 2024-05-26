@@ -13,7 +13,7 @@ use taffy::{NodeId, TaffyTree};
 
 fn default_update(msg: Box<dyn Any>, state: Box<dyn Any>) {}
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Component {
     id: u64,
     key: Option<String>,

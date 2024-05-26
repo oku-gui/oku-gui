@@ -9,7 +9,7 @@ use cosmic_text::{Attrs, Buffer, FontSystem, Metrics};
 use taffy::{NodeId, TaffyTree};
 use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect, Transform};
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Text {
     id: u64,
     key: Option<String>,

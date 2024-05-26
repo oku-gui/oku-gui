@@ -11,7 +11,7 @@ use std::sync::Arc;
 use taffy::{NodeId, TaffyTree};
 use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect};
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Container {
     id: u64,
     key: Option<String>,

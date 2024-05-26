@@ -12,7 +12,7 @@ use std::any::Any;
 use std::sync::Arc;
 use taffy::{NodeId, TaffyTree};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Element {
     Container(Container),
     Text(Text),
