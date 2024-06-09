@@ -1,16 +1,16 @@
-use crate::elements::element::Element;
 use crate::elements::layout_context::LayoutContext;
 use crate::elements::style::Style;
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
+use crate::elements::standard_element::StandardElement;
 use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Empty {
     id: u64,
     key: Option<String>,
-    children: Vec<Element>,
+    children: Vec<Box<dyn StandardElement>>,
 }
 
 impl Empty {
@@ -24,15 +24,15 @@ impl Empty {
 }
 
 impl Empty {
-    pub fn add_child(self, _widget: Element) -> Empty {
+    pub fn add_child(self, _widget: Box<dyn StandardElement>) -> Empty {
         panic!("Empty cannot have children");
     }
 
-    pub fn children(&self) -> Vec<Element> {
+    pub fn children(&self) -> Vec<Box<dyn StandardElement>> {
         self.children.clone()
     }
 
-    pub fn children_mut(&mut self) -> &mut Vec<Element> {
+    pub fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
         &mut self.children
     }
 

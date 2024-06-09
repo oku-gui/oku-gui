@@ -1,4 +1,3 @@
-use crate::elements::element::Element;
 use crate::elements::layout_context::LayoutContext;
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
@@ -18,7 +17,7 @@ pub struct Container {
     id: u64,
     key: Option<String>,
     style: Style,
-    children: Vec<Element>,
+    children: Vec<Box<dyn StandardElement>>,
     computed_x: f32,
     computed_y: f32,
     computed_width: f32,
@@ -45,11 +44,11 @@ impl Container {
 }
 
 impl StandardElement for Container {
-    fn children(&self) -> Vec<Element> {
+    fn children(&self) -> Vec<Box<dyn StandardElement>> {
         self.children.clone()
     }
 
-    fn children_mut(&mut self) -> &mut Vec<Element> {
+    fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
         &mut self.children
     }
 
@@ -144,10 +143,18 @@ impl StandardElement for Container {
     fn add_update_handler(&mut self, update: Arc<fn(Message, Box<dyn Any>, id: u64)>) {
         todo!()
     }
+
+    fn as_any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        todo!()
+    }
 }
 
 impl Container {
-    pub fn add_child(mut self, widget: Element) -> Container {
+    pub fn add_child(mut self, widget: Box<dyn StandardElement>) -> Container {
         self.children.push(widget);
         self
     }

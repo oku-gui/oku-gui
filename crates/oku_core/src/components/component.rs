@@ -1,11 +1,11 @@
 use crate::application::Props;
-use crate::elements::element::Element;
+use crate::elements::standard_element::StandardElement;
 use crate::reactive::reactive::RUNTIME;
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
     ComponentSpec(ComponentSpecification),
-    Element(Element),
+    Element(Box<dyn StandardElement>),
 }
 
 #[derive(Clone)]

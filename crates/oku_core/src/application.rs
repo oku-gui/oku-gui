@@ -1,4 +1,3 @@
-use crate::elements::element::Element;
 use std::any::Any;
 
 pub struct Props {

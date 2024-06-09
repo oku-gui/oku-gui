@@ -2,7 +2,6 @@ use std::any::Any;
 use oku::application::Props;
 use oku::components::component::Component;
 use oku::elements::container::Container;
-use oku::elements::element::Element;
 use oku::elements::text::Text;
 use oku_core::elements::style::{AlignItems, FlexDirection, JustifyContent, Unit};
 use oku_core::events::EventResult;
@@ -20,11 +19,11 @@ struct Test1 {}
 impl Component for Test1 {
     fn view(_props: Option<&Props>, key: Option<String>) -> ComponentSpecification {
         ComponentSpecification {
-            component: |_, _| ComponentOrElement::Element(Element::Container(Container::new().width(Unit::Px(100.0)).background(Color::new_from_rgba_u8(255, 0, 0, 255)))),
+            component: |_, _| ComponentOrElement::Element(Box::new(Container::new().width(Unit::Px(100.0)).height(Unit::Px(200.0)).background(Color::new_from_rgba_u8(255, 0, 0, 255)))),
             key,
             children: vec![
-                ComponentOrElement::Element(Element::Text(Text::new("Hello, World 1!"))),
-                ComponentOrElement::Element(Element::Text(Text::new("Hello, World 2!"))),
+                ComponentOrElement::Element(Box::new(Container::new().width(Unit::Px(100.0)).background(Color::new_from_rgba_u8(255, 0, 0, 255)))),
+                /*ComponentOrElement::Element(Text::new("Hello, World 2!")),*/
             ],
         }
     }

@@ -1,6 +1,5 @@
 pub mod component;
 pub mod container;
-pub mod element;
 pub mod empty;
 pub mod layout_context;
 pub mod standard_element;
