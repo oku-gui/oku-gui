@@ -27,7 +27,7 @@ use crate::elements::component::{Component, default_update};
 
 use crate::elements::container::Container;
 use crate::elements::layout_context::{measure_content, LayoutContext};
-use crate::elements::standard_element::StandardElement;
+use crate::elements::element::Element;
 use crate::elements::style::{Style, Unit};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Renderer};
@@ -40,7 +40,7 @@ struct App {
     window: Option<Arc<Window>>,
     renderer: Option<Box<dyn Renderer + Send>>,
     renderer_context: Option<RenderContext>,
-    element_tree: Option<Box<dyn StandardElement>>,
+    element_tree: Option<Box<dyn Element>>,
     mouse_position: (f32, f32),
 }
 
@@ -282,10 +282,16 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
 
 
                     let mut root = {
+                        
+                        let mut window_element = Container::new();
+                        *window_element.id_mut() = 9999;
+                        
+                        let window_element = window_element.width(Unit::Px(renderer.surface_width()));
 
-                        let root: Rc<RefCell<Box<dyn StandardElement>>> = Rc::new(RefCell::new(Box::new(Container::new())));
-                        let mut to_visit: Vec<(Rc<RefCell<ComponentSpecification>>, Option<Rc<RefCell<Box<dyn StandardElement>>>>)> = vec![(
-                            Rc::new(RefCell::new(app.app.clone())), Some(root.clone())
+                        let root: Rc<RefCell<Box<dyn Element>>> = Rc::new(RefCell::new(Box::new(window_element)));
+                        
+                        let mut to_visit: Vec<(Rc<RefCell<ComponentSpecification>>, Rc<RefCell<Box<dyn Element>>>)> = vec![(
+                            Rc::new(RefCell::new(app.app.clone())), root.clone()
                         )];
 
                         while let Some(component) = to_visit.pop() {
@@ -319,22 +325,18 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                             
                             // Add the new element to the parent.
                             let new_element = Rc::new(RefCell::new(new_element));
-                            if let Some(parent) = parent.as_mut() {
-                                parent.borrow_mut().children_mut().push(new_element.borrow_mut().clone());
-                            }
+                            
+                            // This clone is probably not correct.
+                            parent.borrow_mut().children_mut().push(new_element.borrow_mut().clone());
                             
                             // Add the children of the new element to the visit list.
                             for child in &component.borrow().children {
                                 match child {
                                     ComponentOrElement::Element(element) => {
-                                        if let Some(parent) = parent.as_mut() {
-                                            let a = element.clone();
-                                            println!("Here??");
-                                            parent.borrow_mut().children_mut().push(a);
-                                        }
+                                        new_element.borrow_mut().children_mut().push(element.clone());
                                     }
                                     ComponentOrElement::ComponentSpec(component_spec) => {
-                                        to_visit.push((Rc::new(RefCell::new(component_spec.clone())), Some(new_element.clone())));
+                                        to_visit.push((Rc::new(RefCell::new(component_spec.clone())), new_element.clone()));
                                     }
                                 }
                             }
@@ -346,34 +348,23 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                         x
                     };
 
-                    let mut window_element = Container::new();
-                    //let mut window_key = window_element.key_mut();
-                    //window_key = &mut Some("window".to_string());
-
-                    window_element = window_element.width(Unit::Px(renderer.surface_width()));
-
                     let computed_style = root.computed_style_mut();
 
                     // The root element should be 100% window width if the width is not already set.
                     if computed_style.width.is_auto() {
                         root.computed_style_mut().width = Unit::Px(renderer.surface_width());
                     }
-
-                    window_element = window_element.add_child(root.clone());
-                    let mut window_element: Box<dyn StandardElement> = Box::new(window_element.clone());
-                    {
-                        //let mut window_element: &mut Container = window_element.as_any_mut().downcast_mut::<Container>().unwrap();
-                        window_element = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);   
-                    }
+                    
+                    let mut window_element: Box<dyn Element> = root;
+                    window_element = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);   
+                    
                     
                     window_element.draw(renderer, app.renderer_context.as_mut().unwrap());
-
-                    println!("{:?}", window_element);
                     
                     app.element_tree = Some(window_element);
 
                     renderer.submit();
-                   // app.element_tree.clone().unwrap().print_tree();
+                    app.element_tree.as_ref().unwrap().clone_box().print_tree();
                     send_response(id, wait_for_response, &tx).await;
                 }
                 InternalMessage::Close => {
@@ -414,8 +405,8 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                 }
                 InternalMessage::MouseInput(mouse_input) => {
                     let root = app.element_tree.clone();
-                    let mut to_visit = Vec::<Box<dyn StandardElement>>::new();
-                    let mut traversal_history = Vec::<Box<dyn StandardElement>>::new();
+                    let mut to_visit = Vec::<Box<dyn Element>>::new();
+                    let mut traversal_history = Vec::<Box<dyn Element>>::new();
                     to_visit.push(root.clone().unwrap());
                     traversal_history.push(root.unwrap());
 
@@ -472,7 +463,7 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
     }
 }
 
-fn layout(_window_width: f32, _window_height: f32, render_context: &mut RenderContext, root_element: &mut Box<dyn StandardElement>) -> Box<dyn StandardElement> {
+fn layout(_window_width: f32, _window_height: f32, render_context: &mut RenderContext, root_element: &mut Box<dyn Element>) -> Box<dyn Element> {
     let mut taffy_tree: taffy::TaffyTree<LayoutContext> = taffy::TaffyTree::new();
     let root_node = root_element.compute_layout(&mut taffy_tree, &mut render_context.font_system);
 

@@ -3,14 +3,14 @@ use crate::elements::style::Style;
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
-use crate::elements::standard_element::StandardElement;
+use crate::elements::element::Element;
 use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Empty {
     id: u64,
     key: Option<String>,
-    children: Vec<Box<dyn StandardElement>>,
+    children: Vec<Box<dyn Element>>,
 }
 
 impl Empty {
@@ -24,15 +24,15 @@ impl Empty {
 }
 
 impl Empty {
-    pub fn add_child(self, _widget: Box<dyn StandardElement>) -> Empty {
+    pub fn add_child(self, _widget: Box<dyn Element>) -> Empty {
         panic!("Empty cannot have children");
     }
 
-    pub fn children(&self) -> Vec<Box<dyn StandardElement>> {
+    pub fn children(&self) -> Vec<Box<dyn Element>> {
         self.children.clone()
     }
 
-    pub fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
+    pub fn children_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
         &mut self.children
     }
 

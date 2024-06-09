@@ -1,7 +1,7 @@
 use crate::elements::container::Container;
 use crate::elements::element::Element;
 use crate::elements::empty::Empty;
-use crate::elements::standard_element::StandardElement;
+use crate::elements::element::Element;
 use crate::elements::text::Text;
 use crate::elements::trees::diff_tree;
 use crate::widget_id::reset_unique_widget_id;

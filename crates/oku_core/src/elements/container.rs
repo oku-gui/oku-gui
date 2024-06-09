@@ -1,5 +1,5 @@
 use crate::elements::layout_context::LayoutContext;
-use crate::elements::standard_element::StandardElement;
+use crate::elements::element::Element;
 use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Rectangle, Renderer};
@@ -17,7 +17,7 @@ pub struct Container {
     id: u64,
     key: Option<String>,
     style: Style,
-    children: Vec<Box<dyn StandardElement>>,
+    children: Vec<Box<dyn Element>>,
     computed_x: f32,
     computed_y: f32,
     computed_width: f32,
@@ -43,12 +43,12 @@ impl Container {
     }
 }
 
-impl StandardElement for Container {
-    fn children(&self) -> Vec<Box<dyn StandardElement>> {
+impl Element for Container {
+    fn children(&self) -> Vec<Box<dyn Element>> {
         self.children.clone()
     }
 
-    fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
+    fn children_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
         &mut self.children
     }
 
@@ -154,7 +154,7 @@ impl StandardElement for Container {
 }
 
 impl Container {
-    pub fn add_child(mut self, widget: Box<dyn StandardElement>) -> Container {
+    pub fn add_child(mut self, widget: Box<dyn Element>) -> Container {
         self.children.push(widget);
         self
     }

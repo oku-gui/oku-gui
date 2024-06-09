@@ -1,5 +1,5 @@
 use crate::elements::layout_context::LayoutContext;
-use crate::elements::standard_element::StandardElement;
+use crate::elements::element::Element;
 use crate::elements::style::Style;
 use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
@@ -18,7 +18,7 @@ pub(crate) fn default_update(_msg: Message, _state: Box<dyn Any>, id: u64) {}
 pub struct Component {
     pub(crate) id: u64,
     pub(crate) key: Option<String>,
-    pub(crate) children: Vec<Box<dyn StandardElement>>,
+    pub(crate) children: Vec<Box<dyn Element>>,
     pub update: Arc<fn(msg: Message, state: Box<dyn Any>, id: u64)>,
     pub style: Style,
     pub(crate) computed_x: f32,
@@ -52,18 +52,19 @@ impl Component {
     }
 }
 
-impl StandardElement for Component {
-    fn children(&self) -> Vec<Box<dyn StandardElement>> {
+impl Element for Component {
+    fn children(&self) -> Vec<Box<dyn Element>> {
         self.children.clone()
     }
 
-    fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
+    fn children_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
         &mut self.children
     }
 
     fn name(&self) -> &'static str {
-        "Container"
+        "Component"
     }
+    
     fn id(&self) -> u64 {
         self.id
     }

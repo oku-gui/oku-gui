@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::sync::Arc;
 use crate::elements::layout_context::{CosmicTextContent, LayoutContext};
-use crate::elements::standard_element::StandardElement;
+use crate::elements::element::Element;
 use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Rectangle, Renderer};
@@ -18,7 +18,7 @@ pub struct Text {
     id: u64,
     key: Option<String>,
     style: Style,
-    children: Vec<Box<dyn StandardElement>>,
+    children: Vec<Box<dyn Element>>,
     text: String,
     text_buffer: Option<Buffer>,
     computed_x: f32,
@@ -50,12 +50,12 @@ impl Text {
     }
 }
 
-impl StandardElement for Text {
-    fn children(&self) -> Vec<Box<dyn StandardElement>> {
+impl Element for Text {
+    fn children(&self) -> Vec<Box<dyn Element>> {
         Vec::new()
     }
 
-    fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
+    fn children_mut(&mut self) -> &mut Vec<Box<dyn Element>> {
         &mut self.children
     }
 
@@ -186,7 +186,7 @@ impl StandardElement for Text {
 }
 
 impl Text {
-    pub fn add_child(self, _widget: Box<dyn StandardElement>) -> Text {
+    pub fn add_child(self, _widget: Box<dyn Element>) -> Text {
         panic!("Text can't have children.");
     }
 
