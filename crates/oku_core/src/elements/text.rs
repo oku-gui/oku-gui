@@ -1,3 +1,5 @@
+use std::any::Any;
+use std::sync::Arc;
 use crate::elements::layout_context::{CosmicTextContent, LayoutContext};
 use crate::elements::standard_element::StandardElement;
 use crate::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
@@ -7,6 +9,8 @@ use crate::RenderContext;
 use cosmic_text::{Attrs, Buffer, FontSystem, Metrics};
 use taffy::{NodeId, TaffyTree};
 use tiny_skia::{LineCap, LineJoin, Paint, PathBuilder, Rect};
+use crate::elements::container::Container;
+use crate::events::Message;
 use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
@@ -46,38 +50,35 @@ impl Text {
     }
 }
 
-impl Text {
-    pub fn add_child(self, _widget: Box<dyn StandardElement>) -> Text {
-        panic!("Text can't have children.");
-    }
-
-    pub fn children(&self) -> Vec<Box<dyn StandardElement>> {
+impl StandardElement for Text {
+    fn children(&self) -> Vec<Box<dyn StandardElement>> {
         Vec::new()
     }
 
-    pub fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
+    fn children_mut(&mut self) -> &mut Vec<Box<dyn StandardElement>> {
         &mut self.children
     }
 
-    pub const fn name(&self) -> &'static str {
+    fn name(&self) -> &'static str {
         "Text"
     }
-    pub const fn id(&self) -> u64 {
+    fn id(&self) -> u64 {
         self.id
     }
 
-    pub fn key(&self) -> Option<String> {
+    fn key(&self) -> Option<String> {
         self.key.clone()
     }
-    pub(crate) fn key_mut(&mut self) -> &mut Option<String> {
+
+    fn key_mut(&mut self) -> &mut Option<String> {
         &mut self.key
     }
 
-    pub fn id_mut(&mut self) -> &mut u64 {
+    fn id_mut(&mut self) -> &mut u64 {
         &mut self.id
     }
 
-    pub fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
+    fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
         let text_color = cosmic_text::Color::rgba(self.style.color.r_u8(), self.style.color.g_u8(), self.style.color.b_u8(), self.style.color.a_u8());
 
         /*let mut paint = Paint {
@@ -116,7 +117,7 @@ impl Text {
         });
     }
 
-    pub fn debug_draw(&mut self, render_context: &mut RenderContext) {
+    fn debug_draw(&mut self, render_context: &mut RenderContext) {
         let mut paint = Paint::default();
         paint.set_color_rgba8(0, 0, 0, 255);
         paint.anti_alias = true;
@@ -132,7 +133,7 @@ impl Text {
         }
     }
 
-    pub fn compute_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, font_system: &mut FontSystem) -> NodeId {
+    fn compute_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, font_system: &mut FontSystem) -> NodeId {
         let font_size = self.style.font_size;
         let font_line_height = font_size * 1.2;
         let metrics = Metrics::new(font_size, font_line_height);
@@ -143,7 +144,7 @@ impl Text {
         taffy_tree.new_leaf_with_context(style, LayoutContext::Text(CosmicTextContent::new(metrics, self.text.as_str(), attrs, font_system))).unwrap()
     }
 
-    pub fn finalize_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, root_node: NodeId, x: f32, y: f32) {
+    fn finalize_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, root_node: NodeId, x: f32, y: f32) {
         let result = taffy_tree.layout(root_node).unwrap();
         let buffer = taffy_tree.get_node_context(root_node).unwrap();
 
@@ -158,6 +159,35 @@ impl Text {
         self.computed_height = result.size.height;
 
         self.computed_padding = [result.padding.top, result.padding.right, result.padding.bottom, result.padding.left];
+    }
+
+    fn computed_style(&self) -> Style {
+        self.style
+    }
+    fn computed_style_mut(&mut self) -> &mut Style {
+        &mut self.style
+    }
+
+    fn in_bounds(&self, x: f32, y: f32) -> bool {
+        x >= self.computed_x && x <= self.computed_x + self.computed_width && y >= self.computed_y && y <= self.computed_y + self.computed_height
+    }
+
+    fn add_update_handler(&mut self, update: Arc<fn(Message, Box<dyn Any>, id: u64)>) {
+        todo!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        todo!()
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        todo!()
+    }
+}
+
+impl Text {
+    pub fn add_child(self, _widget: Box<dyn StandardElement>) -> Text {
+        panic!("Text can't have children.");
     }
 
     // Styles

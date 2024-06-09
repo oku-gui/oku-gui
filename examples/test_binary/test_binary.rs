@@ -23,7 +23,7 @@ impl Component for Test1 {
             key,
             children: vec![
                 ComponentOrElement::Element(Box::new(Container::new().width(Unit::Px(100.0)).background(Color::new_from_rgba_u8(255, 0, 0, 255)))),
-                /*ComponentOrElement::Element(Text::new("Hello, World 2!")),*/
+                ComponentOrElement::Element(Box::new(Text::new("Hello, World 2!"))),
             ],
         }
     }
