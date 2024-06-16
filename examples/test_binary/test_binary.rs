@@ -16,15 +16,21 @@ use std::sync::Arc;
 
 struct Test1 {}
 
-pub fn app(_props: Option<&Props>, key: Option<String>) -> ComponentSpecification {
+pub fn app(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
+    println!("-> app");
     ComponentSpecification {
-        component: Container::new().into(),
+        component: Container::new()
+            .background(Color::new_from_rgba_u8(0, 255, 0, 255))
+            .width(Unit::Px(50.0))
+            .height(Unit::Px(50.0))
+            .into(),
         key,
         children: vec![],
     }
 }
 
 fn foo(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
+    println!("-> foo");
     let background = Container::new()
         .background(Color::new_from_rgba_u8(255, 0, 0, 255))
         .width(Unit::Px(200.0))
@@ -40,7 +46,7 @@ fn foo(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpeci
                 children: vec![],
             },
             ComponentSpecification {
-                component: Text::new("Hello, world 2!").into(),
+                component: ComponentOrElement::ComponentSpec(app),
                 key: None,
                 children: vec![],
             },
@@ -55,6 +61,7 @@ fn foo(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpeci
 
 impl Component for Test1 {
     fn view(_props: Option<&Props>, key: Option<String>) -> ComponentSpecification {
+        println!("-> Test1");
         ComponentSpecification {
             component: ComponentOrElement::ComponentSpec(foo),
             key,
