@@ -304,7 +304,7 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                                     }
                                 },
                                 ComponentOrElement::ComponentSpec(component_spec) => {
-                                    let next_component_spec = Rc::new(RefCell::new(component_spec(props, None, children)));
+                                    let next_component_spec = Rc::new(RefCell::new(component_spec(props, children)));
                                     to_visit.push((next_component_spec, parent.clone()));
                                 }
                             };

@@ -4,7 +4,7 @@ use crate::components::props::Props;
 use crate::elements::element::Element;
 use crate::reactive::reactive::RUNTIME;
 
-type view_fn = fn (props: Option<Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification;
+type view_fn = fn (props: Option<Props>, children: Vec<ComponentSpecification>) -> ComponentSpecification;
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
