@@ -16,6 +16,7 @@ accesskit = "0.15.0"
 #accesskit_winit = { version = "0.18.0" }
 
 log = "0.4.21"
+dyn-clone = "1.0.17"
 
 # https://crates.io/crates/glam
 # SSE2 is enabled by default on x86_64 targets.

@@ -1,12 +1,14 @@
-use crate::application::Props;
+use std::any::Any;
+use std::sync::{Arc, RwLock};
+use crate::components::props::Props;
 use crate::elements::element::Element;
 use crate::reactive::reactive::RUNTIME;
 
-type ViewFn = fn (props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification;
+type view_fn = fn (props: Option<Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification;
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
-    ComponentSpec(ViewFn),
+    ComponentSpec(view_fn),
     Element(Box<dyn Element>),
 }
 
@@ -14,6 +16,7 @@ pub enum ComponentOrElement {
 pub struct ComponentSpecification {
     pub component: ComponentOrElement,
     pub key: Option<String>,
+    pub props: Option<Props>,
     pub children: Vec<ComponentSpecification>
 }
 

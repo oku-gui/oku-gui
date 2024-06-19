@@ -1,4 +1,3 @@
-use oku::application::Props;
 use oku::components::component::Component;
 use oku::elements::container::Container;
 use oku::elements::text::Text;
@@ -13,10 +12,11 @@ use oku_core::OkuOptions;
 use oku_core::RendererType::Wgpu;
 use std::any::Any;
 use std::sync::Arc;
+use oku_core::components::props::Props;
 
 struct Test1 {}
 
-pub fn app(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
+pub fn app(_props: Option<Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
     println!("-> app");
     ComponentSpecification {
         component: Container::new()
@@ -25,11 +25,12 @@ pub fn app(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentS
             .height(Unit::Px(50.0))
             .into(),
         key,
+        props: None,
         children: vec![],
     }
 }
 
-fn foo(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
+fn foo(_props: Option<Props>, key: Option<String>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
     println!("-> foo");
     let background = Container::new()
         .background(Color::new_from_rgba_u8(255, 0, 0, 255))
@@ -39,20 +40,24 @@ fn foo(_props: Option<&Props>, key: Option<String>, children: Vec<ComponentSpeci
     ComponentSpecification {
         component: background.into(),
         key,
+        props: None,
         children: vec![
             ComponentSpecification {
                 component: Text::new("Hello, world 1!").into(),
                 key: None,
+                props: None,
                 children: vec![],
             },
             ComponentSpecification {
                 component: ComponentOrElement::ComponentSpec(app),
                 key: None,
+                props: None,
                 children: vec![],
             },
             ComponentSpecification {
                 component: Text::new("Hello, world 2!").into(),
                 key: None,
+                props: None,
                 children: vec![],
             }
         ],
@@ -65,6 +70,7 @@ impl Component for Test1 {
         ComponentSpecification {
             component: ComponentOrElement::ComponentSpec(foo),
             key,
+            props: None,
             children: vec![],
         }
     }

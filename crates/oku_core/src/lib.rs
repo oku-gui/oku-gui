@@ -293,6 +293,7 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                             // Build either a component or an element.
 
                             let children = component.borrow().children.clone();
+                            let props = component.borrow().props.clone();
                             match &component.borrow().component {
                                 ComponentOrElement::Element(element) => {
                                     let new_element = elements.insert((element.clone(), vec![], Some(parent.clone())));
@@ -303,7 +304,7 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                                     }
                                 },
                                 ComponentOrElement::ComponentSpec(component_spec) => {
-                                    let next_component_spec = Rc::new(RefCell::new(component_spec(None, None, children)));
+                                    let next_component_spec = Rc::new(RefCell::new(component_spec(props, None, children)));
                                     to_visit.push((next_component_spec, parent.clone()));
                                 }
                             };
