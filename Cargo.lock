@@ -474,8 +474,8 @@ dependencies = [
 
 [[package]]
 name = "cosmic-text"
-version = "0.11.2"
-source = "git+https://github.com/pop-os/cosmic-text?rev=24fb2089532f6711f2edf67fadaf4b99375de2e4#24fb2089532f6711f2edf67fadaf4b99375de2e4"
+version = "0.12.0"
+source = "git+https://github.com/pop-os/cosmic-text?rev=a03ec6b75f0ea8fd6264d6cd05afcec3c2213f8f#a03ec6b75f0ea8fd6264d6cd05afcec3c2213f8f"
 dependencies = [
  "bitflags 2.5.0",
  "fontdb",
@@ -547,7 +547,7 @@ checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 [[package]]
 name = "d3d12"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=e78c33b3099474c272e9c0f2c61dc3db10fca269#e78c33b3099474c272e9c0f2c61dc3db10fca269"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "bitflags 2.5.0",
  "libloading",
@@ -587,7 +587,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 [[package]]
 name = "dpi"
 version = "0.1.1"
-source = "git+https://github.com/rust-windowing/winit?rev=34c15608e073a75c5e56fdb0a4df629ef14e6c9c#34c15608e073a75c5e56fdb0a4df629ef14e6c9c"
+source = "git+https://github.com/rust-windowing/winit?rev=3e6092b8edf8dfddef3a777b922be1b9ae6a824c#3e6092b8edf8dfddef3a777b922be1b9ae6a824c"
 
 [[package]]
 name = "drm"
@@ -1140,7 +1140,7 @@ dependencies = [
 [[package]]
 name = "naga"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=e78c33b3099474c272e9c0f2c61dc3db10fca269#e78c33b3099474c272e9c0f2c61dc3db10fca269"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -2579,7 +2579,7 @@ dependencies = [
 [[package]]
 name = "wgpu"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=e78c33b3099474c272e9c0f2c61dc3db10fca269#e78c33b3099474c272e9c0f2c61dc3db10fca269"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "arrayvec",
  "cfg_aliases 0.1.1",
@@ -2603,7 +2603,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=e78c33b3099474c272e9c0f2c61dc3db10fca269#e78c33b3099474c272e9c0f2c61dc3db10fca269"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -2627,7 +2627,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=e78c33b3099474c272e9c0f2c61dc3db10fca269#e78c33b3099474c272e9c0f2c61dc3db10fca269"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -2671,7 +2671,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=e78c33b3099474c272e9c0f2c61dc3db10fca269#e78c33b3099474c272e9c0f2c61dc3db10fca269"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "bitflags 2.5.0",
  "js-sys",
@@ -2942,7 +2942,7 @@ checksum = "bec47e5bfd1bff0eeaf6d8b485cc1074891a197ab4225d504cb7a1ab88b02bf0"
 [[package]]
 name = "winit"
 version = "0.30.2"
-source = "git+https://github.com/rust-windowing/winit?rev=34c15608e073a75c5e56fdb0a4df629ef14e6c9c#34c15608e073a75c5e56fdb0a4df629ef14e6c9c"
+source = "git+https://github.com/rust-windowing/winit?rev=3e6092b8edf8dfddef3a777b922be1b9ae6a824c#3e6092b8edf8dfddef3a777b922be1b9ae6a824c"
 dependencies = [
  "ahash",
  "android-activity",

@@ -7,10 +7,10 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 
-winit = { git = "https://github.com/rust-windowing/winit", rev = "34c15608e073a75c5e56fdb0a4df629ef14e6c9c" }
+winit = { git = "https://github.com/rust-windowing/winit", rev = "3e6092b8edf8dfddef3a777b922be1b9ae6a824c" }
 tiny-skia = { git = "https://github.com/RazrFalcon/tiny-skia", rev = "784569522f728cc70232cbb88abd7330571b51dd" }
 softbuffer = { git = "https://github.com/rust-windowing/softbuffer", rev = "d80ef86fa7aa832298f3d85f0243ace3e3f9d7a3" }
-cosmic-text = { git = "https://github.com/pop-os/cosmic-text", rev = "24fb2089532f6711f2edf67fadaf4b99375de2e4" }
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text", rev = "a03ec6b75f0ea8fd6264d6cd05afcec3c2213f8f" }
 taffy = { git = "https://github.com/DioxusLabs/taffy", rev = "e363fc8065ce370dba9fcacd1bd6575e65657c74" }
 accesskit = "0.15.0"
 #accesskit_winit = { version = "0.18.0" }
@@ -22,7 +22,7 @@ dyn-clone = "1.0.17"
 # SSE2 is enabled by default on x86_64 targets.
 glam = { version = "0.28.0" }
 env_logger = { version = "0.11.3" }
-wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "e78c33b3099474c272e9c0f2c61dc3db10fca269" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "1e784c9c0af7a785b62e3b6840ed012a7477520f" }
 bytemuck = { version = "1.16.0", features = ["derive"] }
 image = { version = "0.25.1", default-features = false, features = ["png", "jpeg"] }
 
