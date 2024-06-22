@@ -306,7 +306,7 @@ fn construct_element_tree_from_component_specification(
                 let element_ptr = &mut *element as *mut dyn Element;
                 tree_node.parent.as_mut().unwrap().children_mut().push(element);
 
-                for child in children {
+                for child in children.into_iter().rev() {
                     to_visit.push(
                         TreeVisitorNode {
                             component_specification: Rc::new(RefCell::new(child)),
