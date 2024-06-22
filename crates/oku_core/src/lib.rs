@@ -250,28 +250,57 @@ use crate::events::{ClickMessage};
 use crate::widget_id::{create_unique_widget_id, reset_unique_widget_id};
 
 
-unsafe fn do_unsafe_tree_work(component_specification: ComponentSpecification, mut root: Box<dyn Element>) {
-    
-    return;
-    
-    struct ElementTreeNode {
-        element: *mut Box<dyn Element>,
-    }
-    
-    let root_element_tree_node = ElementTreeNode {
-        element: &mut root,
-    };
-    
-     let mut to_visit: Vec<(Rc<RefCell<ComponentSpecification>>, ElementTreeNode)> = vec![(Rc::new(RefCell::new(component_specification.clone())), root_element_tree_node)];
+struct UnsafeElement {
+    element: *mut dyn Element,
+}
 
-    println!("here");
-    while to_visit.len() != 0 {
-        let popped_item = to_visit.pop().unwrap();
-        let component_specification = to_visit.pop().unwrap().0;
-        let current_element = popped_item.1;
-        
-    }
 
+// This function constructs the element tree from the component specification.
+// The function is safe despite using multiple shared mutable references, because the references are only used to traverse the tree.
+fn construct_element_tree_from_component_specification(component_specification: ComponentSpecification, root: &mut Box<dyn Element>) {
+
+    unsafe {
+    // A component can output only 1 subtree, but the subtree may have an unknown amount of variants.
+    // The subtree variant is determined by the state, much like a function. f(s) = ... where f(s) = Subtree produced and s = State
+    // The algorithm is as follows:
+    // 1. Determine if the currently visited child is an element or a component.
+    // 2. If the child is an element: Add the children of the element to the list of elements to visit.
+    // 3. If the child is a component: Produce the subtree with the inputted state and add the parent of the subtree to the to visit list.
+    let mut to_visit: Vec<(Rc<RefCell<ComponentSpecification>>, *mut dyn Element)> =
+        vec![
+            (
+                Rc::new(RefCell::new(component_specification.clone())),
+                root.as_mut()
+            )
+        ];
+
+    while let Some(component) = to_visit.pop() {
+        let parent = component.1;
+        let component = component.0;
+
+        let children = component.borrow().children.clone();
+        let props = component.borrow().props.clone();
+
+        match &mut component.borrow_mut().component {
+            ComponentOrElement::Element(element) => {
+
+                // let new_element = elements.insert((element.clone(), vec![], Some(parent.clone())));
+                let mut element = element.clone();
+                let element_ptr = &mut *element as *mut dyn Element;
+                parent.as_mut().unwrap().children_mut().push(element);
+
+                for child in children {
+                    //println!("adding child with parent: {:?}", new_element);
+                    to_visit.push((Rc::new(RefCell::new(child)), element_ptr));
+                }
+            },
+            ComponentOrElement::ComponentSpec(component_spec) => {
+                let next_component_spec = Rc::new(RefCell::new(component_spec(props, children)));
+                to_visit.push((next_component_spec, parent.clone()));
+            }
+        };
+    }
+    }
 }
 
 async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<(u64, bool, InternalMessage)>, tx: mpsc::Sender<(u64, InternalMessage)>) {
@@ -294,108 +323,14 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     
                     renderer.surface_set_clear_color(Color::new_from_rgba_u8(255, 255, 255, 255));
 
-                    let mut elements: SlotMap<DefaultKey, (Box<dyn Element>, Vec<DefaultKey>, Option<DefaultKey>)> = SlotMap::new();
-                    
                     let mut window_element = Container::new().background(Color::new_from_rgba_u8(0, 0, 255, 255));
                     *window_element.id_mut() = 9999;
 
-                    let window_element = window_element.width(Unit::Px(renderer.surface_width()));
+                    let mut window_element: Box<dyn Element> = window_element.width(Unit::Px(renderer.surface_width())).into();
 
-                    unsafe {
-                        do_unsafe_tree_work(app.app.clone(), Box::new(window_element.clone()));
-                    }
-                    
-                    
-                    let root: DefaultKey = elements.insert((Box::new(window_element), vec![], None));
 
-                    
-                    {
-                        let mut to_visit: Vec<(Rc<RefCell<ComponentSpecification>>, DefaultKey)> = vec![(
-                            Rc::new(RefCell::new(app.app.clone())), root.clone()
-                        )];
-
-                        while let Some(component) = to_visit.pop() {
-                            let parent = component.1;
-                            let component = component.0;
-
-                            // Ignore the key for now... set key = None.
-                            //let new_element = (component.borrow().component)(None, None);
-
-                            // Build either a component or an element.
-
-                            let children = component.borrow().children.clone();
-                            let props = component.borrow().props.clone();
-                            match &component.borrow().component {
-                                ComponentOrElement::Element(element) => {
-                                    let new_element = elements.insert((element.clone(), vec![], Some(parent.clone())));
-                                    elements[parent].1.push(new_element.clone());
-                                    for child in children {
-                                        //println!("adding child with parent: {:?}", new_element);
-                                        to_visit.push((Rc::new(RefCell::new(child)), new_element.clone()));
-                                    }
-                                },
-                                ComponentOrElement::ComponentSpec(component_spec) => {
-                                    
-                                    let next_component_spec = Rc::new(RefCell::new(component_spec(props, children)));
-                                    to_visit.push((next_component_spec, parent.clone()));
-                                    
-                                }
-                            };
-                        }
-                    }
-
-                    let mut levels: Vec<Vec<DefaultKey>> = vec![];
-
-                    // Level order traversal
-                    let mut to_visit: VecDeque<DefaultKey> = VecDeque::new();
-                    to_visit.push_back(root.clone());
-                    let mut level = 0;
-
-                    while !to_visit.is_empty() {
-                        let mut next_level: Vec<DefaultKey> = vec![];
-                        let to_pop = to_visit.len();
-                        for _ in 0..to_pop {
-                            let node = to_visit.pop_front().unwrap();
-                            let children = elements[node].1.clone();
-                            next_level.push(node.clone());
-                            for child in children {
-                                to_visit.push_back(child);
-                            }
-                        }
-                        levels.push(next_level);
-                        level += 1;
-                    }
-
-                    for (levelno, level) in levels.iter().enumerate() {
-                        for node in level {
-                            let element = elements.get_mut(*node).unwrap().0.clone();
-                            let mut parent_id = 0;
-                            if let Some(parent) = elements.get(*node).unwrap().2 {
-                                parent_id = elements[parent].0.id();
-                            }
-                            //println!("level {} element: {} {} parent {}", levelno, element.name(), element.id(), parent_id);
-                        }
-                    }
-
-                    //println!("levels: {:?}", level);
-
-                    for level in levels.iter().rev() {
-                        for node in level {
-                            let node = elements.get(*node).unwrap().clone();
-                            if let Some(parent) = node.2 {
-                                let parent = elements.get_mut(parent).unwrap();
-                                parent.0.children_mut().push(node.0);
-                            }
-                        }
-                    }
-
-                    let mut root = elements.get_mut(root).unwrap().0.clone();
-
-                    for child in root.children() {
-                        for child in child.children() {
-                            //println!("child_: {}", child.name());
-                        }
-                    }
+                    construct_element_tree_from_component_specification(app.app.clone(), &mut window_element);
+                    let mut root = window_element;
 
                     let computed_style = root.computed_style_mut();
 
