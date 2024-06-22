@@ -16,7 +16,7 @@ use oku_core::components::props::Props;
 
 struct Test1 {}
 
-pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
+pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> ComponentSpecification {
     //println!("-> app");
     ComponentSpecification {
         component: Container::new()
@@ -30,7 +30,7 @@ pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>) -> Comp
     }
 }
 
-fn foo(_props: Option<Props>, children: Vec<ComponentSpecification>) -> ComponentSpecification {
+fn foo(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> ComponentSpecification {
     //println!("-> foo");
     let background = Container::new()
         .background(Color::new_from_rgba_u8(255, 0, 0, 255))

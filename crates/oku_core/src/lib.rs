@@ -259,7 +259,7 @@ struct UnsafeElement {
 struct TreeVisitorNode {
     component_specification: Rc<RefCell<ComponentSpecification>>,
     parent: *mut dyn Element,
-    old_parent: Option<*mut dyn Element>,
+    old_node: Option<*mut dyn Element>,
     parent_tag: String,
 }
 
@@ -285,7 +285,7 @@ fn construct_element_tree_from_component_specification(
             TreeVisitorNode {
                 component_specification: Rc::new(RefCell::new(component_specification.clone())),
                 parent: root.as_mut(),
-                old_parent: old_root_as_ptr,
+                old_node: old_root_as_ptr,
                 parent_tag: String::from("root")
             }
         ];
@@ -296,6 +296,8 @@ fn construct_element_tree_from_component_specification(
         let children = tree_node.component_specification.borrow().children.clone();
         let props = tree_node.component_specification.borrow().props.clone();
 
+        let has_previous_node = tree_node.old_node.is_some();
+        
         match &mut tree_node.component_specification.borrow_mut().component {
             ComponentOrElement::Element(element) => {
                 let mut element = element.clone();
@@ -305,25 +307,45 @@ fn construct_element_tree_from_component_specification(
 
                 let element_ptr = &mut *element as *mut dyn Element;
                 tree_node.parent.as_mut().unwrap().children_mut().push(element);
-
-                for child in children.into_iter().rev() {
+                
+                let mut olds: Vec<*mut dyn Element> = vec![];
+                if has_previous_node {
+                    for child in (*tree_node.old_node.unwrap()).children_mut().into_iter().rev() {
+                        // check tag here. old may need to be an option<*m mut....>
+                        olds.push(child.as_mut() as *mut dyn Element);
+                    }
+                }
+                
+                for (index, child) in children.into_iter().rev().enumerate() {
+                    let old_node = olds.get(index).map(|old| *old);
                     to_visit.push(
                         TreeVisitorNode {
                             component_specification: Rc::new(RefCell::new(child)),
                             parent: element_ptr,
-                            old_parent: None,
+                            old_node,
                             parent_tag: stateless_element_tag.clone()
                         }
                     );
                 }
             },
             ComponentOrElement::ComponentSpec(component_spec) => {
-                let next_component_spec = Rc::new(RefCell::new(component_spec(props, children)));
+                
+                let component_tag = type_name_of_val(component_spec).to_string();
+                
+                let id: u64;
+                if has_previous_node && old_root.unwrap().tag().is_some() && 
+                component_tag == old_root.unwrap().tag().unwrap() {
+                    id = old_root.unwrap().id();
+                } else {
+                    id = create_unique_widget_id();
+                }
+                
+                let next_component_spec = Rc::new(RefCell::new(component_spec(props, children, id)));
                 to_visit.push(TreeVisitorNode {
                     component_specification: next_component_spec,
                     parent: tree_node.parent,
-                    old_parent: None,
-                    parent_tag: type_name_of_val(component_spec).to_string()
+                    old_node: None,
+                    parent_tag: component_tag.clone()
                 });
             }
         };
