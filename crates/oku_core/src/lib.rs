@@ -255,6 +255,13 @@ struct UnsafeElement {
     element: *mut dyn Element,
 }
 
+#[derive(Clone)]
+struct TreeVisitorNode {
+    component_specification: Rc<RefCell<ComponentSpecification>>,
+    parent: *mut dyn Element,
+    old_parent: Option<*mut dyn Element>,
+    parent_tag: String,
+}
 
 // This function constructs the element tree from the component specification.
 // The function is safe despite using multiple shared mutable references, because the references are only used to traverse the tree.
@@ -273,42 +280,54 @@ fn construct_element_tree_from_component_specification(
     // 1. Determine if the currently visited child is an element or a component.
     // 2. If the child is an element: Add the children of the element to the list of elements to visit.
     // 3. If the child is a component: Produce the subtree with the inputted state and add the parent of the subtree to the to visit list.
-    let mut to_visit: Vec<
-        (Rc<RefCell<ComponentSpecification>>, *mut dyn Element/*, Option<*mut dyn Element>*/, String)
-        > =
+    let mut to_visit: Vec<TreeVisitorNode> =
         vec![
-            (
-                Rc::new(RefCell::new(component_specification.clone())),
-                root.as_mut(),
-                String::from("root")
-            )
+            TreeVisitorNode {
+                component_specification: Rc::new(RefCell::new(component_specification.clone())),
+                parent: root.as_mut(),
+                old_parent: old_root_as_ptr,
+                parent_tag: String::from("root")
+            }
         ];
+   /* let mut old_root_to_visit: Vec<*mut dyn Element> = vec![];*/
 
-    while let Some(component) = to_visit.pop() {
-        let parent = component.1;
-        let component = component.0;
+    while let Some(tree_node) = to_visit.pop() {
 
-        let children = component.borrow().children.clone();
-        let props = component.borrow().props.clone();
+        let children = tree_node.component_specification.borrow().children.clone();
+        let props = tree_node.component_specification.borrow().props.clone();
 
-        match &mut component.borrow_mut().component {
+        match &mut tree_node.component_specification.borrow_mut().component {
             ComponentOrElement::Element(element) => {
                 let mut element = element.clone();
-                
-                *element.tag_mut() = Some("StatelessElement".to_string());
-                
+
+                let stateless_element_tag = "StatelessElement".to_string();
+                *element.tag_mut() = Some(stateless_element_tag.clone());
+
                 let element_ptr = &mut *element as *mut dyn Element;
-                parent.as_mut().unwrap().children_mut().push(element);
+                tree_node.parent.as_mut().unwrap().children_mut().push(element);
 
                 for child in children {
-                    to_visit.push((Rc::new(RefCell::new(child)), element_ptr, String::from("StatelessElement")));
+                    to_visit.push(
+                        TreeVisitorNode {
+                            component_specification: Rc::new(RefCell::new(child)),
+                            parent: element_ptr,
+                            old_parent: None,
+                            parent_tag: stateless_element_tag.clone()
+                        }
+                    );
                 }
             },
             ComponentOrElement::ComponentSpec(component_spec) => {
                 let next_component_spec = Rc::new(RefCell::new(component_spec(props, children)));
-                to_visit.push((next_component_spec, parent, type_name_of_val(component_spec).to_string()));
+                to_visit.push(TreeVisitorNode {
+                    component_specification: next_component_spec,
+                    parent: tree_node.parent,
+                    old_parent: None,
+                    parent_tag: type_name_of_val(component_spec).to_string()
+                });
             }
         };
+
     }
     }
 }
