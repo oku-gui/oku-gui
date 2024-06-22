@@ -22,6 +22,9 @@ pub trait Element: Any + StandardElementClone + Debug + Send {
     fn key(&self) -> Option<String>;
     fn key_mut(&mut self) -> &mut Option<String>;
 
+    fn tag(&self) -> Option<String>;
+    fn tag_mut(&mut self) -> &mut Option<String>;
+
     fn id_mut(&mut self) -> &mut u64;
 
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext);

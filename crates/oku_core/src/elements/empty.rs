@@ -15,6 +15,7 @@ use crate::widget_id::create_unique_widget_id;
 pub struct Empty {
     id: u64,
     key: Option<String>,
+    tag: Option<String>,
     children: Vec<Box<dyn Element>>,
 }
 
@@ -23,6 +24,7 @@ impl Empty {
         Empty {
             id: create_unique_widget_id(),
             key: None,
+            tag: None,
             children: vec![],
         }
     }
@@ -51,6 +53,14 @@ impl Element for Empty {
 
     fn key_mut(&mut self) -> &mut Option<String> {
         todo!()
+    }
+
+    fn tag(&self) -> Option<String> {
+        self.tag.clone()
+    }
+
+    fn tag_mut(&mut self) -> &mut Option<String> {
+        &mut self.tag
     }
 
     fn id_mut(&mut self) -> &mut u64 {

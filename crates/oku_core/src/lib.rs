@@ -10,6 +10,7 @@ pub mod reactive;
 #[cfg(test)]
 mod tests;
 
+use std::any::type_name_of_val;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -257,7 +258,13 @@ struct UnsafeElement {
 
 // This function constructs the element tree from the component specification.
 // The function is safe despite using multiple shared mutable references, because the references are only used to traverse the tree.
-fn construct_element_tree_from_component_specification(component_specification: ComponentSpecification, root: &mut Box<dyn Element>) {
+fn construct_element_tree_from_component_specification(
+    component_specification: ComponentSpecification,
+    root: &mut Box<dyn Element>,
+    old_root: Option<&Box<dyn Element>>
+) {
+
+    let old_root_as_ptr = old_root.map(|old_root| old_root.as_ref() as *const dyn Element as *mut dyn Element);
 
     unsafe {
     // A component can output only 1 subtree, but the subtree may have an unknown amount of variants.
@@ -266,11 +273,14 @@ fn construct_element_tree_from_component_specification(component_specification: 
     // 1. Determine if the currently visited child is an element or a component.
     // 2. If the child is an element: Add the children of the element to the list of elements to visit.
     // 3. If the child is a component: Produce the subtree with the inputted state and add the parent of the subtree to the to visit list.
-    let mut to_visit: Vec<(Rc<RefCell<ComponentSpecification>>, *mut dyn Element)> =
+    let mut to_visit: Vec<
+        (Rc<RefCell<ComponentSpecification>>, *mut dyn Element/*, Option<*mut dyn Element>*/, String)
+        > =
         vec![
             (
                 Rc::new(RefCell::new(component_specification.clone())),
-                root.as_mut()
+                root.as_mut(),
+                String::from("root")
             )
         ];
 
@@ -284,16 +294,19 @@ fn construct_element_tree_from_component_specification(component_specification: 
         match &mut component.borrow_mut().component {
             ComponentOrElement::Element(element) => {
                 let mut element = element.clone();
+                
+                *element.tag_mut() = Some("StatelessElement".to_string());
+                
                 let element_ptr = &mut *element as *mut dyn Element;
                 parent.as_mut().unwrap().children_mut().push(element);
 
                 for child in children {
-                    to_visit.push((Rc::new(RefCell::new(child)), element_ptr));
+                    to_visit.push((Rc::new(RefCell::new(child)), element_ptr, String::from("StatelessElement")));
                 }
             },
             ComponentOrElement::ComponentSpec(component_spec) => {
                 let next_component_spec = Rc::new(RefCell::new(component_spec(props, children)));
-                to_visit.push((next_component_spec, parent));
+                to_visit.push((next_component_spec, parent, type_name_of_val(component_spec).to_string()));
             }
         };
     }
@@ -326,7 +339,9 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     let mut window_element: Box<dyn Element> = window_element.width(Unit::Px(renderer.surface_width())).into();
 
 
-                    construct_element_tree_from_component_specification(app.app.clone(), &mut window_element);
+                    let old_root = app.element_tree.as_ref();
+                    construct_element_tree_from_component_specification(app.app.clone(), &mut window_element, old_root);
+
                     let mut root = window_element;
 
                     let computed_style = root.computed_style_mut();

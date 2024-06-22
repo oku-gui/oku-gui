@@ -16,6 +16,7 @@ use crate::widget_id::create_unique_widget_id;
 pub struct Container {
     id: u64,
     key: Option<String>,
+    tag: Option<String>,
     style: Style,
     children: Vec<Box<dyn Element>>,
     computed_x: f32,
@@ -30,6 +31,7 @@ impl Container {
         Container {
             id: create_unique_widget_id(),
             key: None,
+            tag: None,
             style: Style {
                 ..Default::default()
             },
@@ -65,6 +67,14 @@ impl Element for Container {
 
     fn key_mut(&mut self) -> &mut Option<String> {
         &mut self.key
+    }
+
+    fn tag(&self) -> Option<String> {
+        self.tag.clone()
+    }
+
+    fn tag_mut(&mut self) -> &mut Option<String> {
+        &mut self.tag
     }
 
     fn id_mut(&mut self) -> &mut u64 {

@@ -18,6 +18,7 @@ pub(crate) fn default_update(_msg: Message, _state: Box<dyn Any>, id: u64) {}
 pub struct Component {
     pub(crate) id: u64,
     pub(crate) key: Option<String>,
+    pub(crate) tag: Option<String>,
     pub(crate) children: Vec<Box<dyn Element>>,
     pub update: Arc<fn(msg: Message, state: Box<dyn Any>, id: u64)>,
     pub style: Style,
@@ -32,6 +33,7 @@ impl Component {
         Component {
             id: create_unique_widget_id(),
             key: key.map(|s| s.to_string()),
+            tag: None,
             children: vec![],
             style: Style {
                 ..Default::default()
@@ -75,6 +77,14 @@ impl Element for Component {
 
     fn key_mut(&mut self) -> &mut Option<String> {
         &mut self.key
+    }
+
+    fn tag(&self) -> Option<String> {
+        todo!()
+    }
+
+    fn tag_mut(&mut self) -> &mut Option<String> {
+        todo!()
     }
 
     fn id_mut(&mut self) -> &mut u64 {
