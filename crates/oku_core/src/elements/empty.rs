@@ -13,18 +13,12 @@ use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Empty {
-    id: u64,
-    key: Option<String>,
-    tag: Option<String>,
     children: Vec<Box<dyn Element>>,
 }
 
 impl Empty {
     pub fn new() -> Empty {
         Empty {
-            id: create_unique_widget_id(),
-            key: None,
-            tag: None,
             children: vec![],
         }
     }
@@ -42,31 +36,7 @@ impl Element for Empty {
     fn name(&self) -> &'static str {
         "Empty"
     }
-
-    fn id(&self) -> u64 {
-        todo!()
-    }
-
-    fn key(&self) -> Option<String> {
-        todo!()
-    }
-
-    fn key_mut(&mut self) -> &mut Option<String> {
-        todo!()
-    }
-
-    fn tag(&self) -> Option<String> {
-        self.tag.clone()
-    }
-
-    fn tag_mut(&mut self) -> &mut Option<String> {
-        &mut self.tag
-    }
-
-    fn id_mut(&mut self) -> &mut u64 {
-        todo!()
-    }
-
+    
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
         todo!()
     }

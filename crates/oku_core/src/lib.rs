@@ -44,6 +44,7 @@ struct App {
     renderer: Option<Box<dyn Renderer + Send>>,
     renderer_context: Option<RenderContext>,
     element_tree: Option<Box<dyn Element>>,
+    component_tree: Option<Box<ComponentTreeNode>>,
     mouse_position: (f32, f32),
 }
 
@@ -107,6 +108,7 @@ struct ComponentTreeNode {
     key: Option<String>,
     tag: String,
     children: Vec<ComponentTreeNode>,
+    id: u64
 }
 
 pub fn oku_main_with_options(application: ComponentDefinition, options: Option<OkuOptions>) {
@@ -262,7 +264,7 @@ struct TreeVisitorNode {
     component_specification: Rc<RefCell<ComponentDefinition>>,
     parent: *mut dyn Element,
     parent_component_node: *mut ComponentTreeNode,
-    old_node: Option<*mut dyn Element>,
+    old_node: Option<*mut ComponentTreeNode>,
     parent_tag: String,
 }
 
@@ -280,7 +282,7 @@ impl ComponentTreeNode {
                 } else {
                     prefix.push_str("├─");
                 }
-                println!("{} Tag: {}", prefix, (*element).tag);
+                println!("{} , Tag: {}, Id: {}", prefix, (*element).tag, (*element).id);
                 let children = &(*element).children;
                 for (i, child) in children.iter().enumerate() {
                     let is_last = i == children.len() - 1;
@@ -293,14 +295,15 @@ impl ComponentTreeNode {
 
 // This function constructs the render tree from the component specification.
 // The function is safe despite using multiple shared mutable references, because the references are only used to traverse the tree.
-fn construct_render_tree_from_user_tree(component_definition: ComponentDefinition, root: &mut Box<dyn Element>, old_root: Option<&Box<dyn Element>>) {
+fn construct_render_tree_from_user_tree(component_definition: ComponentDefinition, root: &mut Box<dyn Element>, mut old_root: Option<&Box<ComponentTreeNode>>) -> ComponentTreeNode {
     let mut component_tree = ComponentTreeNode {
         key: None,
         tag: "root".to_string(),
         children: vec![],
+        id: 0
     };
 
-    let old_root_as_ptr = old_root.map(|old_root| old_root.as_ref() as *const dyn Element as *mut dyn Element);
+    let old_root_as_ptr = old_root.map(|old_root| old_root.as_ref() as *const ComponentTreeNode as *mut ComponentTreeNode);
 
     unsafe {
         let component_root: *mut ComponentTreeNode = &mut component_tree as *mut ComponentTreeNode;
@@ -331,44 +334,27 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
                 ComponentOrElement::Element(element) => {
                     let mut element = element.clone();
 
-                    let stateless_element_tag = "StatelessElement".to_string();
-                    *element.tag_mut() = Some(stateless_element_tag.clone());
-
                     let element_ptr = &mut *element as *mut dyn Element;
                     tree_node.parent.as_mut().unwrap().children_mut().push(element);
 
-                    let mut olds: Vec<*mut dyn Element> = vec![];
+                    let mut olds: Vec<*mut ComponentTreeNode> = vec![];
                     if has_previous_node {
-                        for child in (*tree_node.old_node.unwrap()).children_mut().into_iter().rev() {
+                        for child in (*tree_node.old_node.unwrap()).children.iter_mut().rev() {
                             // check tag here. old may need to be an option<*m mut....>
-                            olds.push(child.as_mut() as *mut dyn Element);
+                            olds.push(child as *mut ComponentTreeNode);
                         }
                     }
 
                     let mut news: Vec<TreeVisitorNode> = vec![];
                     for (index, child) in children.into_iter().enumerate() {
-                        let mut old_node = olds.get(index).map(|old| *old);
-
-                        /* if old_node.is_some() {
-                            let child_tag: String = match &child.component {
-                                ComponentOrElement::ComponentSpec(cs) => type_name_of_val(&cs).to_string(),
-                                ComponentOrElement::Element(e) => e.tag().unwrap()
-                            };
-                            let old_tag: String = old_node.unwrap().as_ref().unwrap().tag().unwrap();
-
-                            if child_tag != old_tag {
-                                old_node = None
-                            }
-                        } else {
-
-                        }*/
+                        let old_node = olds.get(index).copied();
 
                         news.push(TreeVisitorNode {
                             component_specification: Rc::new(RefCell::new(child)),
                             parent: element_ptr,
                             parent_component_node: tree_node.parent_component_node,
                             old_node,
-                            parent_tag: stateless_element_tag.clone(),
+                            parent_tag: tree_node.parent_tag.clone(),
                         });
                     }
                     to_visit.extend(news.into_iter().rev());
@@ -376,18 +362,29 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
                 ComponentOrElement::ComponentSpec(component_spec, component_name) => {
                     //let component_tag = type_name_of_val(&component_spec).to_string();
                     let component_tag = component_name;
-
-                    //(*tree_node.parent_component_node).tag = component_tag.clone();
+                    
+                    // Find the old root node if it exists and use its id if the tag matches the current tag.
+                    let old_node_tag: String = if has_previous_node {
+                        (*tree_node.old_node.unwrap()).tag.clone()
+                    } else {
+                        String::from("None")
+                    };
+                    println!("Diffing: Old: {}, New: {}", old_node_tag, *component_tag);
+                    let id: u64 = if has_previous_node && *component_tag == old_node_tag {
+                        (*tree_node.old_node.unwrap()).id
+                    } else {
+                        create_unique_widget_id()
+                    };
+                    
                     let new_component_node = ComponentTreeNode {
                         key,
                         tag: component_tag.clone(),
                         children: vec![],
+                        id,
                     };
-
+                    
                     tree_node.parent_component_node.as_mut().unwrap().children.push(new_component_node);
                     let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
-
-                    let id: u64 = if has_previous_node && old_root.unwrap().tag().is_some() && *component_tag == old_root.unwrap().tag().unwrap() { old_root.unwrap().id() } else { create_unique_widget_id() };
 
                     let next_component_spec = Rc::new(RefCell::new(component_spec(props, children, id)));
                     to_visit.push(TreeVisitorNode {
@@ -402,6 +399,7 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
         }
         println!("Component tree:");
         component_tree.print_tree();
+        component_tree
     }
 }
 
@@ -412,6 +410,7 @@ async fn async_main(application: ComponentDefinition, mut rx: mpsc::Receiver<(u6
         renderer: None,
         renderer_context: None,
         element_tree: None,
+        component_tree: None,
         mouse_position: (0.0, 0.0),
     });
 
@@ -426,8 +425,10 @@ async fn async_main(application: ComponentDefinition, mut rx: mpsc::Receiver<(u6
                     let window_element = Container::new().background(Color::new_from_rgba_u8(0, 0, 255, 255));
                     let mut window_element: Box<dyn Element> = window_element.width(Unit::Px(renderer.surface_width())).into();
 
-                    let old_root = app.element_tree.as_ref();
-                    construct_render_tree_from_user_tree(app.app.clone(), &mut window_element, old_root);
+                    let old_component_tree = app.component_tree.as_ref();
+                    app.component_tree = Some(
+                        Box::new(construct_render_tree_from_user_tree(app.app.clone(), &mut window_element, old_component_tree))
+                    );
 
                     let mut root = window_element;
 

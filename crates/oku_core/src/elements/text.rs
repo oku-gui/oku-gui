@@ -15,7 +15,6 @@ use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Text {
-    id: u64,
     key: Option<String>,
     tag: Option<String>,
     style: Style,
@@ -34,7 +33,6 @@ pub struct Text {
 impl Text {
     pub fn new(text: &str) -> Text {
         Text {
-            id: create_unique_widget_id(),
             key: None,
             tag: None,
             style: Style {
@@ -64,30 +62,7 @@ impl Element for Text {
     fn name(&self) -> &'static str {
         "Text"
     }
-    fn id(&self) -> u64 {
-        self.id
-    }
-
-    fn key(&self) -> Option<String> {
-        self.key.clone()
-    }
-
-    fn key_mut(&mut self) -> &mut Option<String> {
-        &mut self.key
-    }
     
-    fn tag(&self) -> Option<String> {
-        self.tag.clone()
-    }
-    
-    fn tag_mut(&mut self) -> &mut Option<String> {
-        &mut self.tag
-    }
-
-    fn id_mut(&mut self) -> &mut u64 {
-        &mut self.id
-    }
-
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
         let text_color = cosmic_text::Color::rgba(self.style.color.r_u8(), self.style.color.g_u8(), self.style.color.b_u8(), self.style.color.a_u8());
 

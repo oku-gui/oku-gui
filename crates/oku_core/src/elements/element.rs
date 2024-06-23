@@ -16,17 +16,7 @@ pub trait Element: Any + StandardElementClone + Debug + Send {
     fn children_mut(&mut self) -> &mut Vec<Box<dyn Element>>;
 
     fn name(&self) -> &'static str;
-
-    fn id(&self) -> u64;
-
-    fn key(&self) -> Option<String>;
-    fn key_mut(&mut self) -> &mut Option<String>;
-
-    fn tag(&self) -> Option<String>;
-    fn tag_mut(&mut self) -> &mut Option<String>;
-
-    fn id_mut(&mut self) -> &mut u64;
-
+    
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext);
 
     fn debug_draw(&mut self, render_context: &mut RenderContext);
@@ -77,7 +67,7 @@ impl dyn Element {
             } else {
                 prefix.push_str("├─");
             }
-            println!("{}{} ID: {} Tag: {}", prefix, element.name(), element.id(), element.tag().unwrap_or("None".to_string()));
+            println!("{}{}", prefix, element.name());
             let children = element.children();
             for (i, child) in children.iter().enumerate() {
                 let is_last = i == children.len() - 1;

@@ -14,9 +14,6 @@ use crate::widget_id::create_unique_widget_id;
 
 #[derive(Clone, Default, Debug)]
 pub struct Container {
-    id: u64,
-    key: Option<String>,
-    tag: Option<String>,
     style: Style,
     children: Vec<Box<dyn Element>>,
     computed_x: f32,
@@ -29,9 +26,6 @@ pub struct Container {
 impl Container {
     pub fn new() -> Container {
         Container {
-            id: create_unique_widget_id(),
-            key: None,
-            tag: None,
             style: Style {
                 ..Default::default()
             },
@@ -57,30 +51,7 @@ impl Element for Container {
     fn name(&self) -> &'static str {
         "Container"
     }
-    fn id(&self) -> u64 {
-        self.id
-    }
-
-    fn key(&self) -> Option<String> {
-        self.key.clone()
-    }
-
-    fn key_mut(&mut self) -> &mut Option<String> {
-        &mut self.key
-    }
-
-    fn tag(&self) -> Option<String> {
-        self.tag.clone()
-    }
-
-    fn tag_mut(&mut self) -> &mut Option<String> {
-        &mut self.tag
-    }
-
-    fn id_mut(&mut self) -> &mut u64 {
-        &mut self.id
-    }
-
+    
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
         let mut paint = Paint::default();
         paint.set_color_rgba8(self.style.background.r_u8(), self.style.background.g_u8(), self.style.background.b_u8(), self.style.background.a_u8());

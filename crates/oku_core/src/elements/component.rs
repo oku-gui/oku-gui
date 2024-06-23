@@ -16,9 +16,6 @@ pub(crate) fn default_update(_msg: Message, _state: Box<dyn Any>, id: u64) {}
 
 #[derive(Clone, Debug)]
 pub struct Component {
-    pub(crate) id: u64,
-    pub(crate) key: Option<String>,
-    pub(crate) tag: Option<String>,
     pub(crate) children: Vec<Box<dyn Element>>,
     pub update: Arc<fn(msg: Message, state: Box<dyn Any>, id: u64)>,
     pub style: Style,
@@ -31,9 +28,6 @@ pub struct Component {
 impl Component {
     pub fn new(key: Option<&str>) -> Component {
         Component {
-            id: create_unique_widget_id(),
-            key: key.map(|s| s.to_string()),
-            tag: None,
             children: vec![],
             style: Style {
                 ..Default::default()
@@ -67,30 +61,6 @@ impl Element for Component {
         "Component"
     }
     
-    fn id(&self) -> u64 {
-        self.id
-    }
-
-    fn key(&self) -> Option<String> {
-        self.key.clone()
-    }
-
-    fn key_mut(&mut self) -> &mut Option<String> {
-        &mut self.key
-    }
-
-    fn tag(&self) -> Option<String> {
-        todo!()
-    }
-
-    fn tag_mut(&mut self) -> &mut Option<String> {
-        todo!()
-    }
-
-    fn id_mut(&mut self) -> &mut u64 {
-        &mut self.id
-    }
-
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
         let mut paint = Paint::default();
         paint.set_color_rgba8(self.style.background.r_u8(), self.style.background.g_u8(), self.style.background.b_u8(), self.style.background.a_u8());
