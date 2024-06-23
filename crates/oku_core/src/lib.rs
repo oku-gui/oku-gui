@@ -265,7 +265,6 @@ struct TreeVisitorNode {
     parent: *mut dyn Element,
     parent_component_node: *mut ComponentTreeNode,
     old_node: Option<*mut ComponentTreeNode>,
-    parent_tag: String,
 }
 
 impl ComponentTreeNode {
@@ -319,9 +318,7 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
             parent: root.as_mut(),
             parent_component_node: component_root,
             old_node: old_root_as_ptr,
-            parent_tag: String::from("root"),
         }];
-        /* let mut old_root_to_visit: Vec<*mut dyn Element> = vec![];*/
 
         while let Some(tree_node) = to_visit.pop() {
             let key = tree_node.component_specification.borrow().key.clone();
@@ -340,7 +337,6 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
                     let mut olds: Vec<*mut ComponentTreeNode> = vec![];
                     if has_previous_node {
                         for child in (*tree_node.old_node.unwrap()).children.iter_mut().rev() {
-                            // check tag here. old may need to be an option<*m mut....>
                             olds.push(child as *mut ComponentTreeNode);
                         }
                     }
@@ -354,35 +350,32 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
                             parent: element_ptr,
                             parent_component_node: tree_node.parent_component_node,
                             old_node,
-                            parent_tag: tree_node.parent_tag.clone(),
                         });
                     }
                     to_visit.extend(news.into_iter().rev());
                 }
-                ComponentOrElement::ComponentSpec(component_spec, component_name) => {
-                    //let component_tag = type_name_of_val(&component_spec).to_string();
-                    let component_tag = component_name;
-                    
+                ComponentOrElement::ComponentSpec(component_spec, component_tag) => {
+
                     // Find the old root node if it exists and use its id if the tag matches the current tag.
-                    let old_node_tag: String = if has_previous_node {
-                        (*tree_node.old_node.unwrap()).tag.clone()
+                    let old_node_tag: Option<String> = if has_previous_node {
+                        Some((*tree_node.old_node.unwrap()).tag.clone())
                     } else {
-                        String::from("None")
+                        None
                     };
-                    println!("Diffing: Old: {}, New: {}", old_node_tag, *component_tag);
-                    let id: u64 = if has_previous_node && *component_tag == old_node_tag {
+                    println!("Diffing: Old: {:?}, New: {}", old_node_tag, *component_tag);
+                    let id: u64 = if old_node_tag.is_some() && *component_tag == old_node_tag.unwrap() {
                         (*tree_node.old_node.unwrap()).id
                     } else {
                         create_unique_widget_id()
                     };
-                    
+
                     let new_component_node = ComponentTreeNode {
                         key,
                         tag: component_tag.clone(),
                         children: vec![],
                         id,
                     };
-                    
+
                     tree_node.parent_component_node.as_mut().unwrap().children.push(new_component_node);
                     let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
 
@@ -392,7 +385,6 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
                         parent: tree_node.parent,
                         parent_component_node: new_component_pointer,
                         old_node: old_root_as_ptr,
-                        parent_tag: component_tag.clone(),
                     });
                 }
             };
