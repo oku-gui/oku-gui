@@ -8,7 +8,7 @@ pub type ViewFn = fn (props: Option<Props>, children: Vec<ComponentDefinition>, 
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
-    ComponentSpec(ViewFn),
+    ComponentSpec(ViewFn, String),
     Element(Box<dyn Element>),
 }
 

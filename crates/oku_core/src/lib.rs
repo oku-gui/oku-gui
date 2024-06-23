@@ -30,7 +30,7 @@ use crate::components::component::{ComponentDefinition, ComponentOrElement, View
 
 use crate::elements::container::Container;
 use crate::elements::layout_context::{measure_content, LayoutContext};
-use crate::elements::element::Element;
+use crate::elements::element::{Element, StandardElementClone};
 use crate::elements::style::{Style, Unit};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::{Renderer};
@@ -269,6 +269,31 @@ struct TreeVisitorNode {
     parent_tag: String,
 }
 
+impl ComponentTreeNode {
+    pub fn print_tree(&self) {
+        unsafe {
+            let mut elements: Vec<(*const ComponentTreeNode, usize, bool)> = vec![(self, 0, true)];
+            while let Some((element, indent, is_last)) = elements.pop() {
+                let mut prefix = String::new();
+                for _ in 0..indent {
+                    prefix.push_str("  ");
+                }
+                if is_last {
+                    prefix.push_str("└─");
+                } else {
+                    prefix.push_str("├─");
+                }
+                println!("{} Tag: {}", prefix, (*element).tag);
+                let children = &(*element).children;
+                for (i, child) in children.iter().enumerate() {
+                    let is_last = i == children.len() - 1;
+                    elements.push((child, indent + 1, is_last));
+                }
+            }
+        }
+    }
+}
+
 // This function constructs the render tree from the component specification.
 // The function is safe despite using multiple shared mutable references, because the references are only used to traverse the tree.
 fn construct_render_tree_from_user_tree(
@@ -362,8 +387,9 @@ fn construct_render_tree_from_user_tree(
                 }
                 to_visit.extend(news.into_iter().rev());
             },
-            ComponentOrElement::ComponentSpec(component_spec) => {
-                let component_tag = type_name_of_val(component_spec).to_string();
+            ComponentOrElement::ComponentSpec(component_spec, component_name) => {
+                //let component_tag = type_name_of_val(&component_spec).to_string();
+                let component_tag = component_name;
 
 
                 //(*tree_node.parent_component_node).tag = component_tag.clone();
@@ -376,7 +402,7 @@ fn construct_render_tree_from_user_tree(
                 tree_node.parent_component_node.as_mut().unwrap().children.push(new_component_node);
                 let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
                 
-                let id: u64 = if has_previous_node && old_root.unwrap().tag().is_some() && component_tag == old_root.unwrap().tag().unwrap() {
+                let id: u64 = if has_previous_node && old_root.unwrap().tag().is_some() && *component_tag == old_root.unwrap().tag().unwrap() {
                     old_root.unwrap().id()
                 } else {
                     create_unique_widget_id()
@@ -394,6 +420,8 @@ fn construct_render_tree_from_user_tree(
         };
 
     }
+        println!("Component tree:");
+      component_tree.print_tree();
     }
 }
 

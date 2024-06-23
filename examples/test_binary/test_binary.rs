@@ -51,7 +51,7 @@ fn foo(_props: Option<Props>, children: Vec<ComponentDefinition>, id: u64) -> Co
                 children: vec![],
             },
             ComponentDefinition {
-                component: ComponentOrElement::ComponentSpec(app),
+                component: ComponentOrElement::ComponentSpec(app, "app".to_string()),
                 key: None,
                 props: None,
                 children: vec![],
@@ -70,7 +70,7 @@ impl Component for Test1 {
     fn view(_props: Option<&Props>, key: Option<String>) -> ComponentDefinition {
         //println!("-> Test1");\
         ComponentDefinition {
-            component: ComponentOrElement::ComponentSpec(foo),
+            component: ComponentOrElement::ComponentSpec(foo, "foo".to_string()),
             key,
             props: None,
             children: vec![],
