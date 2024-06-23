@@ -39,13 +39,15 @@ fn foo(_props: Option<Props>, children: Vec<ComponentDefinition>, id: u64) -> Co
         .width(Unit::Px(200.0))
         .height(Unit::Px(200.0));
     
+    let counter = RUNTIME.get_state::<u32>(id).unwrap_or(0u32);
+    
     ComponentDefinition {
         component: background.into(),
         key: None,
         props: None,
         children: vec![
             ComponentDefinition {
-                component: Text::new("Hello, world 1!").into(),
+                component: Text::new(format!("Hello, world 1! \n Count: {}", counter).as_str()).into(),
                 key: None,
                 props: None,
                 children: vec![],

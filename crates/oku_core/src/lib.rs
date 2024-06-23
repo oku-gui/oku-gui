@@ -254,6 +254,7 @@ async fn send_response(id: u64, wait_for_response: bool, tx: &mpsc::Sender<(u64,
     }
 }
 use crate::events::ClickMessage;
+use crate::reactive::reactive::RUNTIME;
 use crate::widget_id::{create_unique_widget_id, reset_unique_widget_id};
 
 struct UnsafeElement {
@@ -514,39 +515,16 @@ async fn async_main(application: ComponentDefinition, mut rx: mpsc::Receiver<(u6
                         }
                     }
 
+                    let old_state = RUNTIME.get_state(1).unwrap_or(0u32);
+                    RUNTIME.set_state(1, old_state + 1u32);
+                    
                     for element in traversal_history.iter().rev() {
                         let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
                         if !in_bounds {
                             continue;
                         }
-
-                        /*let mut ch = Runtime::get_click_handler(0).unwrap();
-                        let res = ch((2, 2));
-                        Runtime::set_click_handler(0, ch);*/
-
-                        /*match element {
-                            Element::Component(component) => {
-                                let update = component.update.clone();
-
-                                let oku_message = events::Message::OkuMessage(
-                                  events::OkuEvent::Click(ClickMessage {
-                                      mouse_input,
-                                      x: app.mouse_position.0 as f64,
-                                      y: app.mouse_position.1 as f64,
-                                  })
-                                );
-
-                                update(oku_message, Box::new(4), component.id());
-
-                            }
-                            _ => {}
-                        }*/
-
+                        
                         app.window.as_ref().unwrap().request_redraw();
-
-                        /*if let EventResult::Stop = res {
-                            break;
-                        }*/
                     }
 
                     send_response(id, wait_for_response, &tx).await;
