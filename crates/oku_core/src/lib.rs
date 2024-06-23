@@ -364,7 +364,7 @@ fn construct_render_tree_from_user_tree(component_definition: ComponentDefinitio
                             component_index += 1;
                             olds.get(component_index as usize).copied()
                         } else {
-                            None
+                            tree_node.old_component_node
                         };
 
                         news.push(TreeVisitorNode {
