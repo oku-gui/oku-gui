@@ -10,14 +10,15 @@ pub mod reactive;
 #[cfg(test)]
 mod tests;
 
+use crate::components::component::{ComponentDefinition, ComponentOrElement, ViewFn};
+use cosmic_text::{FontSystem, SwashCache};
+use slotmap::{DefaultKey, SlotMap};
 use std::any::type_name_of_val;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
-use cosmic_text::{FontSystem, SwashCache};
 use std::sync::Arc;
 use std::time;
-use slotmap::{DefaultKey, SlotMap};
 use taffy::NodeId;
 use tokio::sync::mpsc;
 use winit::application::ApplicationHandler;
@@ -26,14 +27,13 @@ use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, StartCause, Wi
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
-use crate::components::component::{ComponentDefinition, ComponentOrElement, ViewFn};
 
 use crate::elements::container::Container;
-use crate::elements::layout_context::{measure_content, LayoutContext};
 use crate::elements::element::{Element, StandardElementClone};
+use crate::elements::layout_context::{measure_content, LayoutContext};
 use crate::elements::style::{Style, Unit};
 use crate::renderer::color::Color;
-use crate::renderer::renderer::{Renderer};
+use crate::renderer::renderer::Renderer;
 use crate::renderer::softbuffer::SoftwareRenderer;
 use crate::renderer::wgpu::WgpuRenderer;
 const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
@@ -46,8 +46,6 @@ struct App {
     element_tree: Option<Box<dyn Element>>,
     mouse_position: (f32, f32),
 }
-
-
 
 pub struct RenderContext {
     font_system: FontSystem,
@@ -252,9 +250,8 @@ async fn send_response(id: u64, wait_for_response: bool, tx: &mpsc::Sender<(u64,
         tx.send((id, InternalMessage::Confirmation)).await.expect("send failed");
     }
 }
-use crate::events::{ClickMessage};
+use crate::events::ClickMessage;
 use crate::widget_id::{create_unique_widget_id, reset_unique_widget_id};
-
 
 struct UnsafeElement {
     element: *mut dyn Element,
@@ -296,21 +293,16 @@ impl ComponentTreeNode {
 
 // This function constructs the render tree from the component specification.
 // The function is safe despite using multiple shared mutable references, because the references are only used to traverse the tree.
-fn construct_render_tree_from_user_tree(
-    component_definition: ComponentDefinition,
-    root: &mut Box<dyn Element>,
-    old_root: Option<&Box<dyn Element>>
-) {
+fn construct_render_tree_from_user_tree(component_definition: ComponentDefinition, root: &mut Box<dyn Element>, old_root: Option<&Box<dyn Element>>) {
     let mut component_tree = ComponentTreeNode {
         key: None,
         tag: "root".to_string(),
         children: vec![],
     };
-    
+
     let old_root_as_ptr = old_root.map(|old_root| old_root.as_ref() as *const dyn Element as *mut dyn Element);
 
     unsafe {
-
         let component_root: *mut ComponentTreeNode = &mut component_tree as *mut ComponentTreeNode;
         // A component can output only 1 subtree, but the subtree may have an unknown amount of variants.
         // The subtree variant is determined by the state, much like a function. f(s) = ... where f(s) = Subtree produced and s = State
@@ -318,110 +310,98 @@ fn construct_render_tree_from_user_tree(
         // 1. Determine if the currently visited child is an element or a component.
         // 2. If the child is an element: Add the children of the element to the list of elements to visit.
         // 3. If the child is a component: Produce the subtree with the inputted state and add the parent of the subtree to the to visit list.
-    
-        let mut to_visit: Vec<TreeVisitorNode> =
-        vec![
-            TreeVisitorNode {
-                component_specification: Rc::new(RefCell::new(component_definition.clone())),
-                parent: root.as_mut(),
-                parent_component_node: component_root,
-                old_node: old_root_as_ptr,
-                parent_tag: String::from("root")
-            }
-        ];
-   /* let mut old_root_to_visit: Vec<*mut dyn Element> = vec![];*/
 
-    while let Some(tree_node) = to_visit.pop() {
-    
-        let key = tree_node.component_specification.borrow().key.clone();
-        let children = tree_node.component_specification.borrow().children.clone();
-        let props = tree_node.component_specification.borrow().props.clone();
+        let mut to_visit: Vec<TreeVisitorNode> = vec![TreeVisitorNode {
+            component_specification: Rc::new(RefCell::new(component_definition.clone())),
+            parent: root.as_mut(),
+            parent_component_node: component_root,
+            old_node: old_root_as_ptr,
+            parent_tag: String::from("root"),
+        }];
+        /* let mut old_root_to_visit: Vec<*mut dyn Element> = vec![];*/
 
-        let has_previous_node = tree_node.old_node.is_some();
+        while let Some(tree_node) = to_visit.pop() {
+            let key = tree_node.component_specification.borrow().key.clone();
+            let children = tree_node.component_specification.borrow().children.clone();
+            let props = tree_node.component_specification.borrow().props.clone();
 
-        match &mut tree_node.component_specification.borrow_mut().component {
-            ComponentOrElement::Element(element) => {
-                let mut element = element.clone();
+            let has_previous_node = tree_node.old_node.is_some();
 
-                let stateless_element_tag = "StatelessElement".to_string();
-                *element.tag_mut() = Some(stateless_element_tag.clone());
+            match &mut tree_node.component_specification.borrow_mut().component {
+                ComponentOrElement::Element(element) => {
+                    let mut element = element.clone();
 
-                let element_ptr = &mut *element as *mut dyn Element;
-                tree_node.parent.as_mut().unwrap().children_mut().push(element);
+                    let stateless_element_tag = "StatelessElement".to_string();
+                    *element.tag_mut() = Some(stateless_element_tag.clone());
 
-                let mut olds: Vec<*mut dyn Element> = vec![];
-                if has_previous_node {
-                    for child in (*tree_node.old_node.unwrap()).children_mut().into_iter().rev() {
-                        // check tag here. old may need to be an option<*m mut....>
-                        olds.push(child.as_mut() as *mut dyn Element);
-                    }
-                }
+                    let element_ptr = &mut *element as *mut dyn Element;
+                    tree_node.parent.as_mut().unwrap().children_mut().push(element);
 
-                let mut news: Vec<TreeVisitorNode> = vec![];
-                for (index, child) in children.into_iter().enumerate() {
-                    let mut old_node = olds.get(index).map(|old| *old);
-                    
-                   /* if old_node.is_some() {
-                        let child_tag: String = match &child.component {
-                            ComponentOrElement::ComponentSpec(cs) => type_name_of_val(&cs).to_string(),
-                            ComponentOrElement::Element(e) => e.tag().unwrap()
-                        };
-                        let old_tag: String = old_node.unwrap().as_ref().unwrap().tag().unwrap();
-
-                        if child_tag != old_tag {
-                            old_node = None
+                    let mut olds: Vec<*mut dyn Element> = vec![];
+                    if has_previous_node {
+                        for child in (*tree_node.old_node.unwrap()).children_mut().into_iter().rev() {
+                            // check tag here. old may need to be an option<*m mut....>
+                            olds.push(child.as_mut() as *mut dyn Element);
                         }
-                    } else {
-                        
-                    }*/
-                    
-                    news.push(
-                        TreeVisitorNode {
+                    }
+
+                    let mut news: Vec<TreeVisitorNode> = vec![];
+                    for (index, child) in children.into_iter().enumerate() {
+                        let mut old_node = olds.get(index).map(|old| *old);
+
+                        /* if old_node.is_some() {
+                            let child_tag: String = match &child.component {
+                                ComponentOrElement::ComponentSpec(cs) => type_name_of_val(&cs).to_string(),
+                                ComponentOrElement::Element(e) => e.tag().unwrap()
+                            };
+                            let old_tag: String = old_node.unwrap().as_ref().unwrap().tag().unwrap();
+
+                            if child_tag != old_tag {
+                                old_node = None
+                            }
+                        } else {
+
+                        }*/
+
+                        news.push(TreeVisitorNode {
                             component_specification: Rc::new(RefCell::new(child)),
                             parent: element_ptr,
                             parent_component_node: tree_node.parent_component_node,
                             old_node,
-                            parent_tag: stateless_element_tag.clone()
-                        }
-                    );
+                            parent_tag: stateless_element_tag.clone(),
+                        });
+                    }
+                    to_visit.extend(news.into_iter().rev());
                 }
-                to_visit.extend(news.into_iter().rev());
-            },
-            ComponentOrElement::ComponentSpec(component_spec, component_name) => {
-                //let component_tag = type_name_of_val(&component_spec).to_string();
-                let component_tag = component_name;
+                ComponentOrElement::ComponentSpec(component_spec, component_name) => {
+                    //let component_tag = type_name_of_val(&component_spec).to_string();
+                    let component_tag = component_name;
 
+                    //(*tree_node.parent_component_node).tag = component_tag.clone();
+                    let new_component_node = ComponentTreeNode {
+                        key,
+                        tag: component_tag.clone(),
+                        children: vec![],
+                    };
 
-                //(*tree_node.parent_component_node).tag = component_tag.clone();
-                let new_component_node = ComponentTreeNode {
-                    key,
-                    tag: component_tag.clone(),
-                    children: vec![],
-                };
-                
-                tree_node.parent_component_node.as_mut().unwrap().children.push(new_component_node);
-                let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
-                
-                let id: u64 = if has_previous_node && old_root.unwrap().tag().is_some() && *component_tag == old_root.unwrap().tag().unwrap() {
-                    old_root.unwrap().id()
-                } else {
-                    create_unique_widget_id()
-                };
+                    tree_node.parent_component_node.as_mut().unwrap().children.push(new_component_node);
+                    let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
 
-                let next_component_spec = Rc::new(RefCell::new(component_spec(props, children, id)));
-                to_visit.push(TreeVisitorNode {
-                    component_specification: next_component_spec,
-                    parent: tree_node.parent,
-                    parent_component_node: new_component_pointer,
-                    old_node: old_root_as_ptr,
-                    parent_tag: component_tag.clone()
-                });
-            }
-        };
+                    let id: u64 = if has_previous_node && old_root.unwrap().tag().is_some() && *component_tag == old_root.unwrap().tag().unwrap() { old_root.unwrap().id() } else { create_unique_widget_id() };
 
-    }
+                    let next_component_spec = Rc::new(RefCell::new(component_spec(props, children, id)));
+                    to_visit.push(TreeVisitorNode {
+                        component_specification: next_component_spec,
+                        parent: tree_node.parent,
+                        parent_component_node: new_component_pointer,
+                        old_node: old_root_as_ptr,
+                        parent_tag: component_tag.clone(),
+                    });
+                }
+            };
+        }
         println!("Component tree:");
-      component_tree.print_tree();
+        component_tree.print_tree();
     }
 }
 
@@ -440,12 +420,11 @@ async fn async_main(application: ComponentDefinition, mut rx: mpsc::Receiver<(u6
             match msg {
                 InternalMessage::RequestRedraw => {
                     let renderer = app.renderer.as_mut().unwrap();
-                    
+
                     renderer.surface_set_clear_color(Color::new_from_rgba_u8(255, 255, 255, 255));
 
                     let window_element = Container::new().background(Color::new_from_rgba_u8(0, 0, 255, 255));
                     let mut window_element: Box<dyn Element> = window_element.width(Unit::Px(renderer.surface_width())).into();
-
 
                     let old_root = app.element_tree.as_ref();
                     construct_render_tree_from_user_tree(app.app.clone(), &mut window_element, old_root);
@@ -462,9 +441,8 @@ async fn async_main(application: ComponentDefinition, mut rx: mpsc::Receiver<(u6
                     let mut window_element: Box<dyn Element> = root;
                     window_element = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut window_element);
 
-                    
                     window_element.draw(renderer, app.renderer_context.as_mut().unwrap());
-                    
+
                     app.element_tree = Some(window_element);
 
                     renderer.submit();
@@ -548,8 +526,8 @@ async fn async_main(application: ComponentDefinition, mut rx: mpsc::Receiver<(u6
                             }
                             _ => {}
                         }*/
-                        
-                       app.window.as_ref().unwrap().request_redraw();
+
+                        app.window.as_ref().unwrap().request_redraw();
 
                         /*if let EventResult::Stop = res {
                             break;
@@ -572,10 +550,12 @@ fn layout(_window_width: f32, _window_height: f32, render_context: &mut RenderCo
     let root_node = root_element.compute_layout(&mut taffy_tree, &mut render_context.font_system);
 
     taffy_tree
-        .compute_layout_with_measure(root_node, taffy::Size::max_content(), |known_dimensions, available_space, _node_id, node_context, style| measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system))
+        .compute_layout_with_measure(root_node, taffy::Size::max_content(), |known_dimensions, available_space, _node_id, node_context, style| {
+            measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system)
+        })
         .unwrap();
 
     root_element.finalize_layout(&mut taffy_tree, root_node, 0.0, 0.0);
-    
+
     root_element.clone()
 }
