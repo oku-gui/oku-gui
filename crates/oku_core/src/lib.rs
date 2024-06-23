@@ -523,10 +523,9 @@ async fn async_main(application: ComponentDefinition, mut rx: mpsc::Receiver<(u6
                         if !in_bounds {
                             continue;
                         }
-                        
-                        app.window.as_ref().unwrap().request_redraw();
                     }
 
+                    app.window.as_ref().unwrap().request_redraw();
                     send_response(id, wait_for_response, &tx).await;
                 }
                 InternalMessage::MouseMoved(mouse_moved) => {
