@@ -29,10 +29,6 @@ pub trait Element: Any + StandardElementClone + Debug + Send {
 
     fn in_bounds(&self, x: f32, y: f32) -> bool;
     fn add_update_handler(&mut self, update: Arc<fn(msg: Message, state: Box<dyn Any>, id: u64)>);
-
-    fn as_any(&self) -> &dyn Any;
-    
-    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: Element> From<T> for Box<dyn Element> {

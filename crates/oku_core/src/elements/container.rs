@@ -124,14 +124,6 @@ impl Element for Container {
     fn add_update_handler(&mut self, update: Arc<fn(Message, Box<dyn Any>, id: u64)>) {
         todo!()
     }
-
-    fn as_any(&self) -> &dyn Any {
-        todo!()
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        todo!()
-    }
 }
 
 impl Container {

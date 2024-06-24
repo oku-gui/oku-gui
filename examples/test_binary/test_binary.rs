@@ -13,6 +13,7 @@ use oku_core::RendererType::Wgpu;
 use std::any::Any;
 use std::sync::Arc;
 use oku_core::components::props::Props;
+use oku_core::elements::empty::Empty;
 
 struct Test1 {}
 
@@ -92,6 +93,22 @@ fn foo(_props: Option<Props>, children: Vec<ComponentDefinition>, id: u64) -> Co
     
     let counter = RUNTIME.get_state::<u32>(id).unwrap_or(0u32);
     
+    let q = if counter % 2 == 0 {
+        ComponentDefinition {
+        component: Text::new(format!("EQUAL NUMBER: {}", counter).as_str()).into(),
+            key: None,
+            props: None,
+            children: vec![],
+        }
+    } else {
+        ComponentDefinition {
+            component: Empty::new().into(),
+            key: None,
+            props: None,
+            children: vec![],
+        }
+    };
+    
     ComponentDefinition {
         component: background.into(),
         key: None,
@@ -103,6 +120,7 @@ fn foo(_props: Option<Props>, children: Vec<ComponentDefinition>, id: u64) -> Co
                 props: None,
                 children: vec![],
             },
+            q,
             ComponentDefinition {
                 component: ComponentOrElement::ComponentSpec(app, "app".to_string()),
                 key: None,
