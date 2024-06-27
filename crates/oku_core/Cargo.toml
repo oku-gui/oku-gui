@@ -22,7 +22,7 @@ dyn-clone = "1.0.17"
 # SSE2 is enabled by default on x86_64 targets.
 glam = { version = "0.28.0" }
 env_logger = { version = "0.11.3" }
-wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "1e784c9c0af7a785b62e3b6840ed012a7477520f" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "92c8cf415c6c0d6dc9a89f60e36c4dc0bcb5a4b5" }
 bytemuck = { version = "1.16.0", features = ["derive"] }
 image = { version = "0.25.1", default-features = false, features = ["png", "jpeg"] }
 
