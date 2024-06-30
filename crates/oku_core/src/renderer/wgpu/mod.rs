@@ -8,10 +8,12 @@ use winit::window::Window;
 
 pub struct WgpuRenderer<'a> {
     device: wgpu::Device,
+    queue: wgpu::Queue,
+
     surface: wgpu::Surface<'a>,
     surface_clear_color: Color,
     surface_config: wgpu::SurfaceConfiguration,
-    queue: wgpu::Queue,
+    
     camera: Camera,
     camera_uniform: CameraUniform,
     camera_buffer: wgpu::Buffer,
@@ -23,47 +25,67 @@ pub struct WgpuRenderer<'a> {
     rectangle_indices: Vec<u32>,
 }
 
+async fn request_adapter(instance: wgpu::Instance, surface: &wgpu::Surface<'_>) -> wgpu::Adapter {
+    let adapter = instance
+        .request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        })
+        .await
+        .expect("Failed to request an adapter, cannot request GPU access without an adapter.");
+    return adapter;
+}
+
+async fn request_device_and_queue(adapter: &wgpu::Adapter) -> (wgpu::Device, wgpu::Queue) {
+    let (device, queue) = adapter
+        .request_device(
+            &wgpu::DeviceDescriptor {
+                label: wgpu::Label::from("oku_wgpu_renderer"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::default(),
+            },
+            None, // Trace path
+        )
+        .await
+        .expect("Failed to request a GPU!");
+    return (device, queue);
+}
+
+fn create_surface_config(surface: &wgpu::Surface<'_>, width: u32, height: u32, device: &wgpu::Device, adapter: &wgpu::Adapter) -> wgpu::SurfaceConfiguration {
+    
+    let surface_caps = surface.get_capabilities(&adapter);
+    
+    // Require that we use a surface with a srgb format.
+    surface_caps.formats.iter().copied().find(|f| f.is_srgb()).expect("Failed to find a SRGB surface!");
+    
+    wgpu::SurfaceConfiguration {
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        format: wgpu::TextureFormat::Rgba8Unorm,
+        width,
+        height,
+        present_mode: PresentMode::Fifo,
+        desired_maximum_frame_latency: 0,
+        alpha_mode: CompositeAlphaMode::Auto,
+        view_formats: vec![],
+    }
+    
+}
+
 impl<'a> WgpuRenderer<'a> {
     pub(crate) async fn new(window: Arc<Window>) -> WgpuRenderer<'a> {
+        
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::DX12 | wgpu::Backends::GL,
             ..Default::default()
         });
 
         let surface = instance.create_surface(window.clone()).unwrap();
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await
-            .unwrap();
+        let adapter = request_adapter(instance, &surface).await;
+        let (device, queue) = request_device_and_queue(&adapter).await;
 
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: wgpu::Label::from("oku_wgpu_renderer"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
-                },
-                None, // Trace path
-            )
-            .await
-            .unwrap();
-
-        let surface_caps = surface.get_capabilities(&adapter);
-        surface_caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(surface_caps.formats[0]);
-        let surface_config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            width: window.inner_size().width,
-            height: window.inner_size().height,
-            present_mode: PresentMode::Fifo,
-            desired_maximum_frame_latency: 0,
-            alpha_mode: CompositeAlphaMode::Auto,
-            view_formats: vec![],
-        };
+        let surface_size = window.inner_size();
+        let surface_config = create_surface_config(&surface, surface_size.width, surface_size.height, &device, &adapter);
         surface.configure(&device, &surface_config);
 
         let oku_image_bytes = include_bytes!("oku.png");
@@ -291,6 +313,10 @@ impl Renderer for WgpuRenderer<'_> {
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform.view_proj]));
     }
 
+    fn surface_set_clear_color(&mut self, color: Color) {
+        self.surface_clear_color = color;
+    }
+
     fn draw_rect(&mut self, rectangle: Rectangle, fill_color: Color) {
         let x = rectangle.x;
         let y = rectangle.y;
@@ -394,10 +420,6 @@ impl Renderer for WgpuRenderer<'_> {
 
         self.rectangle_indices.clear();
         self.rectangle_vertices.clear();
-    }
-
-    fn surface_set_clear_color(&mut self, color: Color) {
-        self.surface_clear_color = color;
     }
 }
 

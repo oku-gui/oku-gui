@@ -8,26 +8,21 @@ pub struct CosmicTextContent {
 impl CosmicTextContent {
     pub(crate) fn new(metrics: Metrics, text: &str, attrs: Attrs, font_system: &mut FontSystem) -> Self {
         let mut buffer = Buffer::new_empty(metrics);
-        buffer.set_size(font_system, Some(f32::INFINITY), Some(f32::INFINITY));
+        buffer.set_size(font_system, None, None);
         buffer.set_text(font_system, text, attrs, Shaping::Advanced);
         Self { buffer }
     }
 
     fn measure(&mut self, known_dimensions: Size<Option<f32>>, available_space: Size<AvailableSpace>, font_system: &mut FontSystem) -> Size<f32> {
+        
         // Set width constraint
-        let width_constraint = known_dimensions.width.unwrap_or(match available_space.width {
-            AvailableSpace::MinContent => 0.0,
-            AvailableSpace::MaxContent => f32::INFINITY,
-            AvailableSpace::Definite(width) => width,
+        let width_constraint = known_dimensions.width.or_else(|| match available_space.width {
+            AvailableSpace::MinContent => Some(0.0),
+            AvailableSpace::MaxContent => None,
+            AvailableSpace::Definite(width) => Some(width),
         });
-
-        let _height_constraint = known_dimensions.height.unwrap_or(match available_space.height {
-            AvailableSpace::MinContent => 0.0,
-            AvailableSpace::MaxContent => f32::INFINITY,
-            AvailableSpace::Definite(height) => height,
-        });
-        // self.buffer.set_size(font_system, width_constraint, height_constraint);
-        self.buffer.set_size(font_system, Some(width_constraint), Some(f32::INFINITY));
+        
+        self.buffer.set_size(font_system, width_constraint, None);
 
         // Compute layout
         self.buffer.shape_until_scroll(font_system, true);
