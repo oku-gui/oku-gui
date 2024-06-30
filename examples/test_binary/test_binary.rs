@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 struct Test1 {}
 
-pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> (ComponentSpecification, UpdateFn) {
+pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> (ComponentSpecification, Option<UpdateFn>) {
     (ComponentSpecification {
         component: Container::new().background(Color::new_from_rgba_u8(0, 255, 0, 255)).width(Unit::Px(50.0)).height(Unit::Px(50.0)).into(),
         key: Some("App".to_string()),
@@ -28,7 +28,7 @@ pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64
             props: None,
             children: vec![],
         }],
-    }, update)
+    }, Some(update))
 }
 
 pub fn update(id: u64, message: Message) {

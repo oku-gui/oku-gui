@@ -5,7 +5,7 @@ use crate::elements::element::Element;
 use crate::events::Message;
 use crate::reactive::reactive::RUNTIME;
 
-pub type ViewFn = fn (props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> (ComponentSpecification, UpdateFn);
+pub type ViewFn = fn (props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> (ComponentSpecification, Option<UpdateFn>);
 pub type UpdateFn = fn (id: u64, message: Message);
 
 #[derive(Clone)]

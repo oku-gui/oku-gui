@@ -31,6 +31,7 @@ use crate::elements::container::Container;
 use crate::elements::element::{Element};
 use crate::elements::layout_context::{measure_content, LayoutContext};
 use crate::elements::style::{Unit};
+use crate::events::Message;
 use crate::renderer::color::Color;
 use crate::renderer::renderer::Renderer;
 use crate::renderer::softbuffer::SoftwareRenderer;
@@ -383,7 +384,10 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                     let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
 
                     let new_component = component_spec(props, children, id);
-                    (*new_component_pointer).update = Some(new_component.1);
+                    (*new_component_pointer).update = new_component.1;
+                    if let Some(update_fn) = (*new_component_pointer).update {
+                        update_fn(0, Message::UserMessage(Box::new(& 4)));
+                    }
                     let next_component_spec = Rc::new(RefCell::new(new_component.0));
                     to_visit.push(TreeVisitorNode {
                         component_specification: next_component_spec,
