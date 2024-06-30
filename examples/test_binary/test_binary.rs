@@ -10,7 +10,7 @@ use oku_core::events::EventResult;
 use oku_core::reactive::reactive;
 use oku_core::reactive::reactive::RUNTIME;
 use oku_core::renderer::color::Color;
-use oku_core::OkuOptions;
+use oku_core::{component, OkuOptions};
 use oku_core::RendererType::Wgpu;
 use std::any::Any;
 use std::sync::Arc;
@@ -46,7 +46,7 @@ pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64
         key: Some("App".to_string()),
         props: None,
         children: vec![ComponentSpecification {
-            component: ComponentOrElement::ComponentSpec(something, "something".to_string()),
+            component: component!(something),
             key: None,
             props: None,
             children: vec![],
@@ -69,13 +69,13 @@ fn foo(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) ->
             Text::new(format!("Hello, world 1! \n Count: {}", counter).as_str()).into(),
             q,
             ComponentSpecification {
-                component: ComponentOrElement::ComponentSpec(app, "app".to_string()),
+                component: component!(app),
                 key: None,
                 props: None,
                 children: vec![],
             },
             ComponentSpecification {
-                component: ComponentOrElement::ComponentSpec(twwwww, "twwwww".to_string()),
+                component: component!(twwwww),
                 key: None,
                 props: None,
                 children: vec![],
@@ -89,7 +89,7 @@ impl Component for Test1 {
     fn view(_props: Option<&Props>, key: Option<String>) -> ComponentSpecification {
         //println!("-> Test1");\
         ComponentSpecification {
-            component: ComponentOrElement::ComponentSpec(foo, "foo".to_string()),
+            component: component!(foo),
             key,
             props: None,
             children: vec![],

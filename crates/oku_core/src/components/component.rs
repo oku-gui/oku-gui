@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::sync::{Arc, RwLock};
 use crate::components::props::Props;
 use crate::elements::element::Element;
@@ -8,7 +8,7 @@ pub type ViewFn = fn (props: Option<Props>, children: Vec<ComponentSpecification
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
-    ComponentSpec(ViewFn, String),
+    ComponentSpec(ViewFn, String, TypeId),
     Element(Box<dyn Element>),
 }
 
@@ -18,6 +18,12 @@ pub struct ComponentSpecification {
     pub key: Option<String>,
     pub props: Option<Props>,
     pub children: Vec<ComponentSpecification>
+}
+#[macro_export]
+macro_rules! component {
+    ($name:ident) => {
+        ComponentOrElement::ComponentSpec($name, std::any::type_name_of_val(&$name).to_string(), $name.type_id())
+    };
 }
 
 pub trait Component<State = (), Message = ()>

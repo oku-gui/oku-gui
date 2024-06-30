@@ -361,7 +361,7 @@ fn construct_render_tree_from_user_tree(component_specification: ComponentSpecif
                     let mut news: Vec<TreeVisitorNode> = vec![];
                     let mut component_index: i64 = -1;
                     for (index, child) in children.into_iter().enumerate() {
-                        let old_node = if matches!(child.component, ComponentOrElement::ComponentSpec(_, _)) {
+                        let old_node = if matches!(child.component, ComponentOrElement::ComponentSpec(_, _, _)) {
                             component_index += 1;
                             olds.get(component_index as usize).copied()
                         } else {
@@ -377,7 +377,7 @@ fn construct_render_tree_from_user_tree(component_specification: ComponentSpecif
                     }
                     to_visit.extend(news.into_iter().rev());
                 }
-                ComponentOrElement::ComponentSpec(component_spec, component_tag) => {
+                ComponentOrElement::ComponentSpec(component_spec, component_tag, type_id) => {
 
                     // Find the old root node if it exists and use its id if the tag matches the current tag.
                     let old_node_tag: Option<String> = if has_previous_node {
