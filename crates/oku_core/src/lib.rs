@@ -10,16 +10,12 @@ pub mod reactive;
 #[cfg(test)]
 mod tests;
 
-use crate::components::component::{ComponentSpecification, ComponentOrElement, ViewFn};
+use crate::components::component::{ComponentOrElement, ComponentSpecification};
 use cosmic_text::{FontSystem, SwashCache};
-use slotmap::{DefaultKey, SlotMap};
-use std::any::type_name_of_val;
 use std::cell::RefCell;
-use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time;
-use taffy::NodeId;
 use tokio::sync::mpsc;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
@@ -27,12 +23,14 @@ use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, StartCause, Wi
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
-use crate::components::props::Props;
+
+use crate::reactive::reactive::RUNTIME;
+use crate::widget_id::{create_unique_widget_id, reset_unique_widget_id};
 
 use crate::elements::container::Container;
-use crate::elements::element::{Element, StandardElementClone};
+use crate::elements::element::{Element};
 use crate::elements::layout_context::{measure_content, LayoutContext};
-use crate::elements::style::{Style, Unit};
+use crate::elements::style::{Unit};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::Renderer;
 use crate::renderer::softbuffer::SoftwareRenderer;
@@ -45,7 +43,7 @@ struct App {
     renderer: Option<Box<dyn Renderer + Send>>,
     renderer_context: Option<RenderContext>,
     element_tree: Option<Box<dyn Element>>,
-    component_tree: Option<Box<ComponentTreeNode>>,
+    component_tree: Option<ComponentTreeNode>,
     mouse_position: (f32, f32),
 }
 
@@ -109,7 +107,7 @@ struct ComponentTreeNode {
     key: Option<String>,
     tag: String,
     children: Vec<ComponentTreeNode>,
-    id: u64
+    id: u64,
 }
 
 pub fn oku_main_with_options(application: ComponentSpecification, options: Option<OkuOptions>) {
@@ -253,9 +251,6 @@ async fn send_response(id: u64, wait_for_response: bool, tx: &mpsc::Sender<(u64,
         tx.send((id, InternalMessage::Confirmation)).await.expect("send failed");
     }
 }
-use crate::events::ClickMessage;
-use crate::reactive::reactive::RUNTIME;
-use crate::widget_id::{create_unique_widget_id, reset_unique_widget_id};
 
 struct UnsafeElement {
     element: *mut dyn Element,
@@ -266,7 +261,7 @@ struct TreeVisitorNode {
     component_specification: Rc<RefCell<ComponentSpecification>>,
     parent: *mut dyn Element,
     parent_component_node: *mut ComponentTreeNode,
-    old_component_node: Option<*mut ComponentTreeNode>,
+    old_component_node: Option<*const ComponentTreeNode>,
 }
 
 impl ComponentTreeNode {
@@ -294,28 +289,19 @@ impl ComponentTreeNode {
     }
 }
 
-// This function constructs the render tree from the component specification.
-// The function is safe despite using multiple shared mutable references, because the references are only used to traverse the tree.
-fn construct_render_tree_from_user_tree(component_specification: ComponentSpecification, root: &mut Box<dyn Element>, old_component_tree: Option<&Box<ComponentTreeNode>>) -> ComponentTreeNode {
+/// Creates a new Component tree and Element tree from a ComponentSpecification.
+/// The ids of the Component tree are stable across renders.
+pub(crate) fn create_trees_from_render_specification(component_specification: ComponentSpecification, mut root_element: Box<dyn Element>, old_component_tree: Option<&ComponentTreeNode>) -> (ComponentTreeNode, Box<dyn Element>) {
     unsafe {
-
         let mut component_tree = ComponentTreeNode {
             key: None,
             tag: "root".to_string(),
             children: vec![],
-            id: 0
+            id: 0,
         };
 
-        println!("-----------------------------------");
-        let old_component_tree_as_ptr = old_component_tree.map(|old_root| old_root.as_ref() as *const ComponentTreeNode as *mut ComponentTreeNode);
+        let old_component_tree_as_ptr = old_component_tree.map(|old_root| old_root as *const ComponentTreeNode);
 
-        if let Some(comp) = old_component_tree_as_ptr {
-            println!("Old component tree is Some");
-            (*comp).print_tree();
-        } else {
-            println!("Old component tree is None");
-        }
-        
         let component_root: *mut ComponentTreeNode = &mut component_tree as *mut ComponentTreeNode;
         // A component can output only 1 subtree, but the subtree may have an unknown amount of variants.
         // The subtree variant is determined by the state, much like a function. f(s) = ... where f(s) = Subtree produced and s = State
@@ -323,16 +309,17 @@ fn construct_render_tree_from_user_tree(component_specification: ComponentSpecif
         // 1. Determine if the currently visited child is an element or a component.
         // 2. If the child is an element: Add the children of the element to the list of elements to visit.
         // 3. If the child is a component: Produce the subtree with the inputted state and add the parent of the subtree to the to visit list.
-        
+
         let root_spec = ComponentSpecification {
-            component: ComponentOrElement::Element(root.clone()),
+            component: ComponentOrElement::Element(root_element.clone()),
             key: None,
             props: None,
             children: vec![component_specification],
         };
+
         let mut to_visit: Vec<TreeVisitorNode> = vec![TreeVisitorNode {
             component_specification: Rc::new(RefCell::new(root_spec)),
-            parent: root.as_mut(),
+            parent: root_element.as_mut() as *mut dyn Element,
             parent_component_node: component_root,
             old_component_node: old_component_tree_as_ptr,
         }];
@@ -351,16 +338,16 @@ fn construct_render_tree_from_user_tree(component_specification: ComponentSpecif
                     let element_ptr = &mut *element as *mut dyn Element;
                     tree_node.parent.as_mut().unwrap().children_mut().push(element);
 
-                    let mut olds: Vec<*mut ComponentTreeNode> = vec![];
+                    let mut olds: Vec<*const ComponentTreeNode> = vec![];
                     if has_previous_node {
-                        for child in (*tree_node.old_component_node.unwrap()).children.iter_mut() {
-                            olds.push(child as *mut ComponentTreeNode);
+                        for child in (*tree_node.old_component_node.unwrap()).children.iter() {
+                            olds.push(child as *const ComponentTreeNode);
                         }
                     }
 
                     let mut news: Vec<TreeVisitorNode> = vec![];
                     let mut component_index: i64 = -1;
-                    for (index, child) in children.into_iter().enumerate() {
+                    for child in children.into_iter() {
                         let old_node = if matches!(child.component, ComponentOrElement::ComponentSpec(_, _, _)) {
                             component_index += 1;
                             olds.get(component_index as usize).copied()
@@ -378,19 +365,9 @@ fn construct_render_tree_from_user_tree(component_specification: ComponentSpecif
                     to_visit.extend(news.into_iter().rev());
                 }
                 ComponentOrElement::ComponentSpec(component_spec, component_tag, type_id) => {
-
                     // Find the old root node if it exists and use its id if the tag matches the current tag.
-                    let old_node_tag: Option<String> = if has_previous_node {
-                        Some((*tree_node.old_component_node.unwrap()).tag.clone())
-                    } else {
-                        None
-                    };
-                    println!("Diffing: Old: {:?}, New: {}", old_node_tag, *component_tag);
-                    let id: u64 = if old_node_tag.is_some() && *component_tag == old_node_tag.unwrap() {
-                        (*tree_node.old_component_node.unwrap()).id
-                    } else {
-                        create_unique_widget_id()
-                    };
+                    let old_node_tag: Option<String> = if has_previous_node { Some((*tree_node.old_component_node.unwrap()).tag.clone()) } else { None };
+                    let id: u64 = if old_node_tag.is_some() && *component_tag == old_node_tag.unwrap() { (*tree_node.old_component_node.unwrap()).id } else { create_unique_widget_id() };
 
                     let new_component_node = ComponentTreeNode {
                         key,
@@ -412,9 +389,7 @@ fn construct_render_tree_from_user_tree(component_specification: ComponentSpecif
                 }
             };
         }
-        println!("Component tree:");
-        component_tree.print_tree();
-        component_tree
+        (component_tree, root_element)
     }
 }
 
@@ -438,14 +413,13 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     renderer.surface_set_clear_color(Color::new_from_rgba_u8(255, 255, 255, 255));
 
                     let window_element = Container::new().background(Color::new_from_rgba_u8(0, 0, 255, 255));
-                    let mut window_element: Box<dyn Element> = window_element.width(Unit::Px(renderer.surface_width())).into();
+                    let window_element: Box<dyn Element> = window_element.width(Unit::Px(renderer.surface_width())).into();
 
                     let old_component_tree = app.component_tree.as_ref();
-                    app.component_tree = Some(
-                        Box::new(construct_render_tree_from_user_tree(app.app.clone(), &mut window_element, old_component_tree))
-                    );
+                    let new_tree = create_trees_from_render_specification(app.app.clone(), window_element, old_component_tree);
+                    app.component_tree = Some(new_tree.0);
 
-                    let mut root = window_element;
+                    let mut root = new_tree.1;
 
                     let computed_style = root.computed_style_mut();
 
@@ -462,7 +436,6 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     app.element_tree = Some(window_element);
 
                     renderer.submit();
-                    app.element_tree.as_ref().unwrap().clone_box().print_tree();
                     send_response(id, wait_for_response, &tx).await;
                 }
                 InternalMessage::Close => {
@@ -517,7 +490,7 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
 
                     let old_state = RUNTIME.get_state(1).unwrap_or(0u32);
                     RUNTIME.set_state(1, old_state + 1u32);
-                    
+
                     for element in traversal_history.iter().rev() {
                         let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
                         if !in_bounds {

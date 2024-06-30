@@ -1,40 +1,35 @@
+use crate::components::props::Props;
+use crate::ComponentOrElement;
+use std::any::Any;
+use crate::{component, create_trees_from_render_specification};
+use crate::components::component::ComponentSpecification;
 use crate::elements::container::Container;
-use crate::elements::element::Element;
-use crate::elements::empty::Empty;
 use crate::elements::text::Text;
-use crate::elements::trees::diff_tree;
-use crate::widget_id::reset_unique_widget_id;
 
 #[test]
-fn diff_assigns_stable_id_when_child_is_removed() {
-    
-    // Container
-    // ├── Text("b")
-    // └── Text("c")
-    let mut old_a = Container::new();
-    let old_b = Text::new("b");
-    let old_c = Text::new("c");
+fn create_trees_from_render_specification_with_no_old_tree_generates_ids() {
+    fn component(_props: Option<Props>, _children: Vec<ComponentSpecification>, id: u64) -> ComponentSpecification {
+        assert_eq!(id, 1);
+        Text::new("a").into()
+    }
 
-    old_a = old_a.add_child(old_b.into());
-    old_a = old_a.add_child(old_c.into());
-    
-    let old_a: Box<dyn Element> = old_a.into();
-    old_a.print_tree();
-    
-    // Reset the new widget id back to zero, act like this is a new render.
-    reset_unique_widget_id();
+    let component_specification = ComponentSpecification {
+        component: Container::new().into(),
+        key: None,
+        props: None,
+        children: vec![
+            crate::elements::text::Text::new("a").into(),
+            ComponentSpecification {
+                component: component!(component),
+                key: None,
+                props: None,
+                children: vec![],
+            },
+            crate::elements::text::Text::new("c").into(),
+        ],
+    };
 
-    // Container
-    // ├── Empty
-    // └── Text("c")
-    let mut new_a = Container::new();
-    let new_b: Box<dyn Element> = Empty::new().into();
-    let new_c = Text::new("c").into();
-    new_a = new_a.add_child(new_b);
-    new_a = new_a.add_child(new_c);
-    let new_a: Box<dyn Element> = new_a.into();
+    let root = Container::new().into();
 
-    new_a.print_tree();
-    
-    assert_eq!(old_a.children()[1].id(), new_a.children()[1].id(), "test that b has the same id when removed");
+    create_trees_from_render_specification(component_specification, root, None);
 }
