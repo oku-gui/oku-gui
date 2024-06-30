@@ -1,7 +1,7 @@
 use oku::components::component::Component;
 use oku::elements::container::Container;
 use oku::elements::text::Text;
-use oku_core::components::component::{ComponentSpecification, ComponentOrElement};
+use oku_core::components::component::{ComponentOrElement, ComponentSpecification};
 use oku_core::components::props::Props;
 use oku_core::elements::element::Element;
 use oku_core::elements::empty::Empty;
@@ -10,8 +10,8 @@ use oku_core::events::EventResult;
 use oku_core::reactive::reactive;
 use oku_core::reactive::reactive::RUNTIME;
 use oku_core::renderer::color::Color;
-use oku_core::{component, OkuOptions};
 use oku_core::RendererType::Wgpu;
+use oku_core::{component, OkuOptions};
 use std::any::Any;
 use std::sync::Arc;
 
@@ -22,9 +22,7 @@ pub fn something(_props: Option<Props>, children: Vec<ComponentSpecification>, i
         component: Container::new().background(Color::new_from_rgba_u8(0, 155, 25, 255)).width(Unit::Px(20.0)).height(Unit::Px(20.0)).into(),
         key: Some("Something".to_string()),
         props: None,
-        children: vec![
-            Text::new("Hi2").into()
-        ],
+        children: vec![Text::new("Hi2").into()],
     }
 }
 
@@ -33,9 +31,7 @@ pub fn twwwww(_props: Option<Props>, children: Vec<ComponentSpecification>, id: 
         component: Container::new().background(Color::new_from_rgba_u8(0, 155, 25, 255)).width(Unit::Px(20.0)).height(Unit::Px(20.0)).into(),
         key: Some("twwwww".to_string()),
         props: None,
-        children: vec![
-            Text::new("Hi3").into()
-        ],
+        children: vec![Text::new("Hi3").into()],
     }
 }
 
@@ -84,17 +80,14 @@ fn foo(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) ->
     }
 }
 
-impl Component for Test1 {
-    fn view(_props: Option<&Props>, key: Option<String>) -> ComponentSpecification {
+fn main() {
+    oku_core::oku_main_with_options(
         ComponentSpecification {
             component: component!(foo),
-            key,
+            key: None,
             props: None,
             children: vec![],
-        }
-    }
-}
-
-fn main() {
-    oku_core::oku_main_with_options(Test1::view(None, Some(String::from("foo"))), Some(OkuOptions { renderer: Wgpu }));
+        },
+        Some(OkuOptions { renderer: Wgpu }),
+    );
 }

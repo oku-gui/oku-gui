@@ -2,9 +2,11 @@ use std::any::{Any, TypeId};
 use std::sync::{Arc, RwLock};
 use crate::components::props::Props;
 use crate::elements::element::Element;
+use crate::events::Message;
 use crate::reactive::reactive::RUNTIME;
 
 pub type ViewFn = fn (props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> ComponentSpecification;
+pub type UpdateFn = fn (id: u64, message: Message);
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
@@ -30,16 +32,15 @@ pub trait Component<State = (), Message = ()>
 where
     State: Clone + Send + Sized + 'static,
 {
-    fn view(props: Option<&Props>, key: Option<String>) -> ComponentSpecification;
+    fn view(&self, props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> ComponentSpecification;
 
-    fn get_state(&self) -> Option<State> {
+/*    fn get_state(&self) -> Option<State> {
         RUNTIME.get_state(0)
     }
 
     fn set_state(&self, value: State) {
         RUNTIME.set_state(0, value);
     }
-
-    #[allow(unused_variables)]
-    fn update(message: Message, state: &mut State) {}
+*/
+    fn update(&self, id: u64, message: crate::events::Message);
 }

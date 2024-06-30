@@ -1,4 +1,3 @@
-pub mod component;
 pub mod container;
 pub mod empty;
 pub mod layout_context;
