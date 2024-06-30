@@ -13,17 +13,19 @@ use oku_core::renderer::color::Color;
 use oku_core::RendererType::Wgpu;
 use oku_core::{component, OkuOptions};
 use std::any::Any;
-use std::sync::Arc;
 
 struct Test1 {}
 
 pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> (ComponentSpecification, Option<UpdateFn>) {
+    
+    let count = RUNTIME.get_state(id).unwrap_or(0u32);
+    
     (ComponentSpecification {
         component: Container::new().background(Color::new_from_rgba_u8(0, 255, 0, 255)).width(Unit::Px(50.0)).height(Unit::Px(50.0)).into(),
         key: Some("App".to_string()),
         props: None,
         children: vec![ComponentSpecification {
-            component: Text::new("Hello, world!").into(),
+            component: Text::new(format!("Count: {}", count).as_str()).into(),
             key: None,
             props: None,
             children: vec![],

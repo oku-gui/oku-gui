@@ -338,6 +338,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                 ComponentOrElement::Element(element) => {
                     let mut element = element.clone();
 
+                    element.set_parent_id((*tree_node.parent_component_node).id);
                     let element_ptr = &mut *element as *mut dyn Element;
                     tree_node.parent.as_mut().unwrap().children_mut().push(element);
 
@@ -398,6 +399,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                 }
             };
         }
+        
         (component_tree, root_element)
     }
 }
@@ -497,14 +499,16 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                         }
                     }
 
-                    let old_state = RUNTIME.get_state(1).unwrap_or(0u32);
-                    RUNTIME.set_state(1, old_state + 1u32);
-
                     for element in traversal_history.iter().rev() {
                         let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
                         if !in_bounds {
                             continue;
                         }
+                        
+                        let parent_component_id = element.parent_id();
+                        let old_state = RUNTIME.get_state(parent_component_id).unwrap_or(0u32);
+                        RUNTIME.set_state(parent_component_id, old_state + 1u32);
+                        break;
                     }
 
                     app.window.as_ref().unwrap().request_redraw();

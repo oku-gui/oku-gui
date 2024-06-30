@@ -22,6 +22,7 @@ pub struct Container {
     computed_height: f32,
     computed_padding: [f32; 4],
     id: Option<String>,
+    parent_component_id: u64,
 }
 
 impl Container {
@@ -37,6 +38,7 @@ impl Container {
             computed_height: 0.0,
             computed_padding: [0.0, 0.0, 0.0, 0.0],
             id: None,
+            parent_component_id: 0,
         }
     }
 }
@@ -133,6 +135,14 @@ impl Element for Container {
 
     fn set_id(&mut self, id: Option<String>) {
         self.id = id;
+    }
+
+    fn parent_id(&self) -> u64 {
+        self.parent_component_id
+    }
+
+    fn set_parent_id(&mut self, id: u64) {
+        self.parent_component_id = id;
     }
 }
 

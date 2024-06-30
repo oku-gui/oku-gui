@@ -17,6 +17,7 @@ pub struct Empty {
     style: Style,
     computed_style: Style,
     id: Option<String>,
+    parent_component_id: u64,
 }
 
 impl Empty {
@@ -26,6 +27,7 @@ impl Empty {
             style: Default::default(),
             computed_style: Default::default(),
             id: None,
+            parent_component_id: 0,
         }
     }
 }
@@ -87,5 +89,13 @@ impl Element for Empty {
 
     fn set_id(&mut self, id: Option<String>) {
         self.id = id;
+    }
+
+    fn parent_id(&self) -> u64 {
+        self.parent_component_id
+    }
+
+    fn set_parent_id(&mut self, id: u64) {
+        self.parent_component_id = id;
     }
 }
