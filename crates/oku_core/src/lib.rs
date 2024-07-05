@@ -330,6 +330,8 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     send_response(id, wait_for_response, &tx).await;
                 }
                 InternalMessage::MouseInput(mouse_input) => {
+                    // let root = Rc::new(RefCell::new(app.component_tree.clone()));
+                    
                     let root = app.element_tree.clone();
                     let mut to_visit = Vec::<Box<dyn Element>>::new();
                     let mut traversal_history = Vec::<Box<dyn Element>>::new();
@@ -349,6 +351,8 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                             continue;
                         }
 
+                        //let root = Rc::new(RefCell::new(app.component_tree.clone()));
+                        
                         let parent_component_id = element.parent_component_id();
                         println!("Parent Component Id: {}", parent_component_id);
                         let old_state = RUNTIME.get_state(parent_component_id).unwrap_or(0u32);

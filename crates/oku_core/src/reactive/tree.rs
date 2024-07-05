@@ -5,6 +5,7 @@ use crate::components::component::{ComponentOrElement, ComponentSpecification, U
 use crate::elements::element::Element;
 use crate::widget_id::create_unique_widget_id;
 
+#[derive(Clone)]
 pub struct ComponentTreeNode {
     key: Option<String>,
     tag: String,

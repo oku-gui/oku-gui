@@ -20,15 +20,15 @@ pub fn counter(_props: Option<Props>, children: Vec<ComponentSpecification>, id:
 
     println!("Children len: {}", children.len());
     
-    let mut component_children = children.clone();
-    component_children.push(Text::new(format!("Counter Count: {}", count).as_str()).into());
+    //let mut component_children = children.clone();
+    //component_children.push(Text::new(format!("Counter Count: {}", count).as_str()).into());
     
     (
         ComponentSpecification {
-            component: Container::new().flex_direction(FlexDirection::Column).width(Unit::Px(200.0)).into(),
+            component: Text::new(format!("Counter Count: {}", count).as_str()).into(),
             key: None,
             props: None,
-            children: component_children,
+            children: vec![],
         },
         Some(update),
     )
