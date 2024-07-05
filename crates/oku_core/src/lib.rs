@@ -109,6 +109,7 @@ struct ComponentTreeNode {
     tag: String,
     update: Option<UpdateFn>,
     children: Vec<ComponentTreeNode>,
+    children_keys: Vec<String>,
     id: u64,
 }
 
@@ -301,6 +302,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
             tag: "root".to_string(),
             update: None,
             children: vec![],
+            children_keys: vec![],
             id: 0,
         };
 
@@ -309,7 +311,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
         if old_component_tree_as_ptr.is_some() {
             old_component_tree_as_ptr = Some((*old_component_tree_as_ptr.unwrap()).children.get(0).unwrap() as *const ComponentTreeNode);
         }
-        
+
         let component_root: *mut ComponentTreeNode = &mut component_tree as *mut ComponentTreeNode;
         // A component can output only 1 subtree, but the subtree may have an unknown amount of variants.
         // The subtree variant is determined by the state, much like a function. f(s) = ... where f(s) = Subtree produced and s = State
@@ -336,11 +338,11 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
             let key = tree_node.component_specification.borrow().key.clone();
             let children = tree_node.component_specification.borrow().children.clone();
             let props = tree_node.component_specification.borrow().props.clone();
-            
+
             let old_tag = tree_node.old_component_node.map(|old_node| (*old_node).tag.clone());
             let mut parent_element_ptr = tree_node.parent_element_ptr;
             let parent_component_ptr = tree_node.parent_component_node;
-            
+
             match &mut tree_node.component_specification.borrow_mut().component {
                 ComponentOrElement::Element(element) => {
                     // Create the new element node.
@@ -349,7 +351,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
 
                     // Store the new tag, i.e. the element's name.
                     let new_tag = element.name().to_string();
-                    
+
                     let id = if let Some(old_tag) = old_tag {
                         println!("Old Tag: {}, New Tag: {}", old_tag, new_tag);
                         if new_tag == old_tag {
@@ -360,16 +362,17 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                     } else {
                         create_unique_widget_id()
                     };
-                    
+
                     // Move the new element into it's parent and set the parent element to be the new element.
                     tree_node.parent_element_ptr.as_mut().unwrap().children_mut().push(element);
                     parent_element_ptr = tree_node.parent_element_ptr.as_mut().unwrap().children_mut().last_mut().unwrap().as_mut();
-                    
+
                     let new_component_node = ComponentTreeNode {
                         key: None,
                         tag: new_tag,
                         update: None,
                         children: vec![],
+                        children_keys: vec![],
                         id,
                     };
 
@@ -384,7 +387,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                             olds.push(child as *const ComponentTreeNode);
                         }
                     }
-                    
+
                     let mut new_to_visits: Vec<TreeVisitorNode> = vec![];
                     // Add the children of the new element to the to visit list.
                     for (index, child) in children.into_iter().enumerate() {
@@ -395,7 +398,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                             old_component_node: olds.get(index).copied(),
                         });
                     }
-                    
+
                     to_visit.extend(new_to_visits.into_iter().rev());
                 }
                 ComponentOrElement::ComponentSpec(component_spec, new_tag, type_id) => {
@@ -411,12 +414,13 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                     };
 
                     let new_component = component_spec(props, children, id);
-                    
+
                     let new_component_node = ComponentTreeNode {
                         key,
                         tag: (*new_tag).clone(),
                         update: None,
                         children: vec![],
+                        children_keys: vec![],
                         id,
                     };
 
@@ -426,7 +430,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
 
                     // The old node should be the first child of the old component node.
                     let old_component_tree = tree_node.old_component_node.map(|old_node| (*old_node).children.get(0).unwrap() as *const ComponentTreeNode);
-                    
+
                     // Add the computed component spec to the to visit list.
                     to_visit.push(TreeVisitorNode {
                         component_specification: Rc::new(RefCell::new(new_component.0)),
