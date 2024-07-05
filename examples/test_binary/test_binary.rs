@@ -57,10 +57,29 @@ pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64
                     key: None,
                     props: None,
                     children: vec![ComponentSpecification {
-                        component: component!(counter),
+                        component: Container::new().into(),
                         key: None,
                         props: None,
-                        children: vec![],
+                        children: vec![
+                            ComponentSpecification {
+                                component: component!(counter),
+                                key: None,
+                                props: None,
+                                children: vec![],
+                            },
+                            ComponentSpecification {
+                                component: component!(counter),
+                                key: None,
+                                props: None,
+                                children: vec![],
+                            },
+                            ComponentSpecification {
+                                component: component!(counter),
+                                key: None,
+                                props: None,
+                                children: vec![],
+                            },
+                        ],
                     }],
                 },
             ],

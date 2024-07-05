@@ -261,7 +261,7 @@ struct UnsafeElement {
 #[derive(Clone)]
 struct TreeVisitorNode {
     component_specification: Rc<RefCell<ComponentSpecification>>,
-    parent: *mut dyn Element,
+    parent_element_ptr: *mut dyn Element,
     parent_component_node: *mut ComponentTreeNode,
     old_component_node: Option<*const ComponentTreeNode>,
 }
@@ -304,8 +304,12 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
             id: 0,
         };
 
-        let old_component_tree_as_ptr = old_component_tree.map(|old_root| old_root as *const ComponentTreeNode);
+        let mut old_component_tree_as_ptr = old_component_tree.map(|old_root| old_root as *const ComponentTreeNode);
 
+        if old_component_tree_as_ptr.is_some() {
+            old_component_tree_as_ptr = Some((*old_component_tree_as_ptr.unwrap()).children.get(0).unwrap() as *const ComponentTreeNode);
+        }
+        
         let component_root: *mut ComponentTreeNode = &mut component_tree as *mut ComponentTreeNode;
         // A component can output only 1 subtree, but the subtree may have an unknown amount of variants.
         // The subtree variant is determined by the state, much like a function. f(s) = ... where f(s) = Subtree produced and s = State
@@ -323,104 +327,126 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
 
         let mut to_visit: Vec<TreeVisitorNode> = vec![TreeVisitorNode {
             component_specification: Rc::new(RefCell::new(root_spec)),
-            parent: root_element.as_mut() as *mut dyn Element,
+            parent_element_ptr: root_element.as_mut() as *mut dyn Element,
             parent_component_node: component_root,
             old_component_node: old_component_tree_as_ptr,
         }];
-        
-        if let Some(old_component_tree_as_ptr) = old_component_tree_as_ptr {
-            println!("old");
-            (*old_component_tree_as_ptr).print_tree();
-        }
 
         while let Some(tree_node) = to_visit.pop() {
             let key = tree_node.component_specification.borrow().key.clone();
             let children = tree_node.component_specification.borrow().children.clone();
             let props = tree_node.component_specification.borrow().props.clone();
-
-            let has_previous_node = tree_node.old_component_node.is_some();
-
+            
+            let old_tag = tree_node.old_component_node.map(|old_node| (*old_node).tag.clone());
+            let mut parent_element_ptr = tree_node.parent_element_ptr;
+            let parent_component_ptr = tree_node.parent_component_node;
+            
             match &mut tree_node.component_specification.borrow_mut().component {
                 ComponentOrElement::Element(element) => {
+                    // Create the new element node.
                     let mut element = element.clone();
-
                     element.set_parent_component_id((*tree_node.parent_component_node).id);
-                    let element_ptr = &mut *element as *mut dyn Element;
-                    tree_node.parent.as_mut().unwrap().children_mut().push(element);
 
-                    let mut olds: Vec<*const ComponentTreeNode> = vec![];
-                    if has_previous_node {
-                        for child in (*tree_node.old_component_node.unwrap()).children.iter() {
-                            println!("olds: {}", child.id);
-                            olds.push(child as *const ComponentTreeNode);
-                        }
-                        println!("<<<<<<<");
-                    }
-
-                    let mut news: Vec<TreeVisitorNode> = vec![];
-                    let mut component_index: i64 = -1;
-                    for child in children.into_iter() {
-                        let old_node = if matches!(child.component, ComponentOrElement::ComponentSpec(_, _, _)) {
-                            component_index += 1;
-                            olds.get(component_index as usize).copied()
+                    // Store the new tag, i.e. the element's name.
+                    let new_tag = element.name().to_string();
+                    
+                    let id = if let Some(old_tag) = old_tag {
+                        println!("Old Tag: {}, New Tag: {}", old_tag, new_tag);
+                        if new_tag == old_tag {
+                            (*tree_node.old_component_node.unwrap()).id
                         } else {
-                            tree_node.old_component_node
-                        };
-
-                        news.push(TreeVisitorNode {
-                            component_specification: Rc::new(RefCell::new(child)),
-                            parent: element_ptr,
-                            parent_component_node: tree_node.parent_component_node,
-                            old_component_node: old_node,
-                        });
-                    }
-                    to_visit.extend(news.into_iter().rev());
-                }
-                ComponentOrElement::ComponentSpec(component_spec, component_tag, type_id) => {
-                    // Find the old root node if it exists and use its id if the tag matches the current tag.
-                    let old_node_tag: Option<String> = if has_previous_node { 
-                        Some((*tree_node.old_component_node.unwrap()).tag.clone()) 
-                    } else { 
-                        None 
-                    };
-                    if has_previous_node {
-                        //println!("old tag: {}, id {} new tag: {}, {}", old_node_tag.as_ref().unwrap(), (*tree_node.old_component_node.unwrap()).id, component_tag, 9);
-                    }
-                    let id: u64 = if old_node_tag.is_some() && *component_tag == old_node_tag.unwrap() { 
-                        (*tree_node.old_component_node.unwrap()).id 
+                            create_unique_widget_id()
+                        }
                     } else {
-                        create_unique_widget_id() 
+                        create_unique_widget_id()
                     };
-                    println!("Id: {}", id);
+                    
+                    // Move the new element into it's parent and set the parent element to be the new element.
+                    tree_node.parent_element_ptr.as_mut().unwrap().children_mut().push(element);
+                    parent_element_ptr = tree_node.parent_element_ptr.as_mut().unwrap().children_mut().last_mut().unwrap().as_mut();
+                    
                     let new_component_node = ComponentTreeNode {
-                        key,
-                        tag: component_tag.clone(),
+                        key: None,
+                        tag: new_tag,
                         update: None,
                         children: vec![],
                         id,
                     };
 
-                    tree_node.parent_component_node.as_mut().unwrap().children.push(new_component_node);
+                    // Add the new component node to the tree and get a pointer to it.
+                    parent_component_ptr.as_mut().unwrap().children.push(new_component_node);
                     let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
 
+                    // Get the old children of the old component node.
+                    let mut olds: Vec<*const ComponentTreeNode> = vec![];
+                    if tree_node.old_component_node.is_some() {
+                        for child in (*tree_node.old_component_node.unwrap()).children.iter() {
+                            olds.push(child as *const ComponentTreeNode);
+                        }
+                    }
+                    
+                    let mut new_to_visits: Vec<TreeVisitorNode> = vec![];
+                    // Add the children of the new element to the to visit list.
+                    for (index, child) in children.into_iter().enumerate() {
+                        new_to_visits.push(TreeVisitorNode {
+                            component_specification: Rc::new(RefCell::new(child)),
+                            parent_element_ptr,
+                            parent_component_node: new_component_pointer,
+                            old_component_node: olds.get(index).copied(),
+                        });
+                    }
+                    
+                    to_visit.extend(new_to_visits.into_iter().rev());
+                }
+                ComponentOrElement::ComponentSpec(component_spec, new_tag, type_id) => {
+                    let id = if let Some(old_tag) = old_tag {
+                        println!("Old Tag: {}, New Tag: {}", old_tag, new_tag);
+                        if *new_tag == old_tag {
+                            (*tree_node.old_component_node.unwrap()).id
+                        } else {
+                            create_unique_widget_id()
+                        }
+                    } else {
+                        create_unique_widget_id()
+                    };
+
                     let new_component = component_spec(props, children, id);
-                    (*new_component_pointer).update = new_component.1;
-                   /* if let Some(update_fn) = (*new_component_pointer).update {
-                        update_fn(0, Message::UserMessage(Box::new(& 4)));
-                    }*/
-                    let next_component_spec = Rc::new(RefCell::new(new_component.0));
+                    
+                    let new_component_node = ComponentTreeNode {
+                        key,
+                        tag: (*new_tag).clone(),
+                        update: None,
+                        children: vec![],
+                        id,
+                    };
+
+                    // Add the new component node to the tree and get a pointer to it.
+                    parent_component_ptr.as_mut().unwrap().children.push(new_component_node);
+                    let new_component_pointer: *mut ComponentTreeNode = (*tree_node.parent_component_node).children.last_mut().unwrap();
+
+                    // The old node should be the first child of the old component node.
+                    let old_component_tree = tree_node.old_component_node.map(|old_node| (*old_node).children.get(0).unwrap() as *const ComponentTreeNode);
+                    
+                    // Add the computed component spec to the to visit list.
                     to_visit.push(TreeVisitorNode {
-                        component_specification: next_component_spec,
-                        parent: tree_node.parent,
+                        component_specification: Rc::new(RefCell::new(new_component.0)),
+                        parent_element_ptr,
                         parent_component_node: new_component_pointer,
-                        old_component_node: tree_node.old_component_node,
+                        old_component_node: old_component_tree,
                     });
                 }
             };
         }
-
+        println!("-----------------------------------------");
+        println!("-----------------------------------------");
+        println!("old");
+        if let Some(old_component_tree) = old_component_tree {
+            old_component_tree.print_tree()
+        }
+        println!("new");
         component_tree.print_tree();
-        //root_element.print_tree();
+        println!("-----------------------------------------");
+        println!("-----------------------------------------");
 
         (component_tree, root_element)
     }
