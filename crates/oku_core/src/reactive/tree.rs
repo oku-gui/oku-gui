@@ -122,7 +122,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                     parent_element_ptr = tree_node.parent_element_ptr.as_mut().unwrap().children_mut().last_mut().unwrap().as_mut();
 
                     let new_component_node = ComponentTreeNode {
-                        key: key,
+                        key: None,
                         tag: new_tag,
                         update: None,
                         children: vec![],
@@ -145,6 +145,25 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                     let mut new_to_visits: Vec<TreeVisitorNode> = vec![];
                     // Add the children of the new element to the to visit list.
                     for (index, child) in children.into_iter().enumerate() {
+                        
+                        // Find old child by key and if no key is found, find by index.
+                        let key = child.key.clone();
+                        
+                        let mut index = index;
+                        
+                        for (old_index, old_child) in olds.iter().enumerate() {
+                            let old_key = (*(*old_child)).key.clone();
+                            
+                            if old_key == key {
+                                if old_key.is_none() || child.key.is_none() {
+                                    continue;
+                                }
+                                index = old_index;
+                                break;
+                            }
+                            
+                        }
+                        
                         new_to_visits.push(TreeVisitorNode {
                             component_specification: Rc::new(RefCell::new(child)),
                             parent_element_ptr,
@@ -164,6 +183,7 @@ pub(crate) fn create_trees_from_render_specification(component_specification: Co
                     } else if let Some(old_tag) = old_tag {
                         println!("Old Tag: {}, New Tag: {}", old_tag, new_tag);
                         if *new_tag == old_tag {
+                            // If the old tag is the same as the new tag, we can reuse the old id.
                             (*tree_node.old_component_node.unwrap()).id
                         } else {
                             create_unique_widget_id()
