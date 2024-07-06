@@ -10,7 +10,7 @@ use oku::reactive::reactive::RUNTIME;
 use oku::renderer::color::Color;
 use oku::RendererType::Wgpu;
 use oku::{component, oku_main_with_options, OkuOptions};
-use oku_core::elements::style::{AlignItems, JustifyContent};
+use oku::elements::style::{AlignItems, JustifyContent};
 use std::any::Any;
 
 pub fn counter(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> (ComponentSpecification, Option<UpdateFn>) {
