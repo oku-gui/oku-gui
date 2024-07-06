@@ -56,6 +56,17 @@ impl From<Box<dyn Element>> for ComponentOrElement {
     }
 }
 
+impl From<ComponentOrElement> for ComponentSpecification {
+    fn from(element: ComponentOrElement) -> Self {
+        ComponentSpecification {
+            component: element,
+            key: None,
+            props: None,
+            children: vec![],
+        }
+    }
+}
+
 impl<T: Element> From<T> for ComponentSpecification {
     fn from(element: T) -> Self {
         ComponentSpecification {

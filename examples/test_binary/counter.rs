@@ -3,6 +3,7 @@ use oku::components::component::ComponentSpecification;
 use oku::components::component::UpdateFn;
 use oku::components::props::Props;
 use oku::elements::container::Container;
+use oku::elements::style::{AlignItems, JustifyContent};
 use oku::elements::style::{FlexDirection, Unit};
 use oku::elements::text::Text;
 use oku::events::Message;
@@ -10,7 +11,6 @@ use oku::reactive::reactive::RUNTIME;
 use oku::renderer::color::Color;
 use oku::RendererType::Wgpu;
 use oku::{component, oku_main_with_options, OkuOptions};
-use oku::elements::style::{AlignItems, JustifyContent};
 use std::any::Any;
 
 pub fn counter(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> (ComponentSpecification, Option<UpdateFn>) {
@@ -46,12 +46,7 @@ pub fn app(_props: Option<Props>, children: Vec<ComponentSpecification>, id: u64
                 component: Container::new().background(Color::new_from_rgba_u8(200, 200, 200, 255)).padding(10.0, 20.0, 10.0, 20.0).into(),
                 key: None,
                 props: None,
-                children: vec![ComponentSpecification {
-                    component: component!(counter),
-                    key: None,
-                    props: None,
-                    children: vec![],
-                }],
+                children: vec![component!(counter).into()],
             }],
         },
         None,
