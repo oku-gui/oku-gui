@@ -6,7 +6,6 @@ use crate::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
-use tiny_skia::{Paint, PathBuilder, Rect};
 
 #[derive(Clone, Default, Debug)]
 pub struct Container {
@@ -57,15 +56,6 @@ impl Element for Container {
     }
 
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
-        let mut paint = Paint::default();
-        paint.set_color_rgba8(
-            self.style.background.r_u8(),
-            self.style.background.g_u8(),
-            self.style.background.b_u8(),
-            self.style.background.a_u8(),
-        );
-        paint.anti_alias = true;
-
         renderer.draw_rect(
             Rectangle::new(self.computed_x, self.computed_y, self.computed_width, self.computed_height),
             self.style.background,
@@ -77,21 +67,6 @@ impl Element for Container {
     }
 
     fn debug_draw(&mut self, render_context: &mut RenderContext) {
-        let mut paint = Paint::default();
-        paint.set_color_rgba8(0, 0, 0, 255);
-        paint.anti_alias = true;
-
-        let mut path_builder = PathBuilder::new();
-        path_builder.push_rect(
-            Rect::from_xywh(self.computed_x, self.computed_y, self.computed_width, self.computed_height).unwrap(),
-        );
-        path_builder.finish().unwrap();
-
-        //render_context.canvas.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
-
-        for child in self.children.iter_mut() {
-            child.debug_draw(render_context);
-        }
     }
 
     fn compute_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, font_system: &mut FontSystem) -> NodeId {
