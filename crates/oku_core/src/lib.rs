@@ -5,17 +5,17 @@ pub mod elements;
 pub mod renderer;
 mod widget_id;
 
+mod component_pre_order_iterator;
 pub mod events;
+mod fiber_node;
 pub mod reactive;
 #[cfg(test)]
 mod tests;
-mod component_pre_order_iterator;
-mod fiber_node;
 
-use crate::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn};
+use crate::components::component::{ComponentSpecification};
+use crate::fiber_node::FiberNode;
+use crate::widget_id::{reset_unique_widget_id};
 use cosmic_text::{FontSystem, SwashCache};
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time;
 use tokio::sync::mpsc;
@@ -25,16 +25,13 @@ use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, StartCause, Wi
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
-use crate::fiber_node::FiberNode;
-use crate::reactive::reactive::RUNTIME;
-use crate::widget_id::{create_unique_widget_id, reset_unique_widget_id};
 
 use crate::elements::container::Container;
-use crate::elements::element::{Element};
+use crate::elements::element::Element;
 use crate::elements::layout_context::{measure_content, LayoutContext};
-use crate::elements::style::{Unit};
+use crate::elements::style::Unit;
 use crate::events::Message;
-use crate::reactive::tree::{ComponentTreeNode, create_trees_from_render_specification};
+use crate::reactive::tree::{create_trees_from_render_specification, ComponentTreeNode};
 use crate::renderer::color::Color;
 use crate::renderer::renderer::Renderer;
 use crate::renderer::softbuffer::SoftwareRenderer;
@@ -192,11 +189,12 @@ impl ApplicationHandler for OkuState {
                 self.send_message(InternalMessage::Resize(new_size), true);
             }
             WindowEvent::KeyboardInput {
-                event: KeyEvent {
-                    logical_key: key,
-                    state: ElementState::Pressed,
-                    ..
-                },
+                event:
+                    KeyEvent {
+                        logical_key: key,
+                        state: ElementState::Pressed,
+                        ..
+                    },
                 ..
             } => {
                 if let Key::Named(NamedKey::Escape) = key.as_ref() {
@@ -249,8 +247,11 @@ async fn send_response(id: u64, wait_for_response: bool, tx: &mpsc::Sender<(u64,
     }
 }
 
-
-async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<(u64, bool, InternalMessage)>, tx: mpsc::Sender<(u64, InternalMessage)>) {
+async fn async_main(
+    application: ComponentSpecification,
+    mut rx: mpsc::Receiver<(u64, bool, InternalMessage)>,
+    tx: mpsc::Sender<(u64, InternalMessage)>,
+) {
     let mut app = Box::new(App {
         app: application,
         window: None,
@@ -271,7 +272,8 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
 
                     let window_element = Container::new().into();
                     let old_component_tree = app.component_tree.as_ref();
-                    let new_tree = create_trees_from_render_specification(app.app.clone(), window_element, old_component_tree);
+                    let new_tree =
+                        create_trees_from_render_specification(app.app.clone(), window_element, old_component_tree);
                     app.component_tree = Some(new_tree.0);
 
                     let mut root = new_tree.1;
@@ -284,7 +286,7 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     };
 
                     root.children_mut()[0].computed_style_mut().width = Unit::Px(renderer.surface_width());
-                    
+
                     if is_user_root_height_auto {
                         root.computed_style_mut().height = Unit::Auto;
                     } else {
@@ -292,7 +294,12 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     }
 
                     root.print_tree();
-                    root = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut root);
+                    root = layout(
+                        renderer.surface_width(),
+                        renderer.surface_height(),
+                        app.renderer_context.as_mut().unwrap(),
+                        &mut root,
+                    );
                     root.draw(renderer, app.renderer_context.as_mut().unwrap());
                     app.element_tree = Some(root);
 
@@ -336,48 +343,11 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                     send_response(id, wait_for_response, &tx).await;
                 }
                 InternalMessage::MouseInput(mouse_input) => {
-                    // let root = Rc::new(RefCell::new(app.component_tree.clone()));
-                    
-                    /*let root_element = app.element_tree.clone();
-                    let root_component = app.component_tree.clone().unwrap();
-                    let mut to_visit = Vec::<(Box<dyn Element>, ComponentTreeNode)>::new();
-                    let mut traversal_history = Vec::<(Box<dyn Element>, ComponentTreeNode)>::new();
-                    to_visit.push((root_element.clone().unwrap(), root_component.clone()));
-                    traversal_history.push((root_element.unwrap(), root_component));
-
-                    while let Some((element, component_tree_node)) = to_visit.pop() {
-                        for (child, child2) in element.children().iter().zip(component_tree_node.children) {
-                            to_visit.push((child.clone(), child2.clone()));
-                            traversal_history.push((child.clone(), child2.clone()));
-                        }
-                    }
-
-                    for (element, component) in traversal_history.iter().rev() {
-                        let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
-                        if !in_bounds {
-                            continue;
-                        }
-
-                        //let root = Rc::new(RefCell::new(app.component_tree.clone()));
-                        
-                        let parent_component_id = element.parent_component_id();
-                        println!("Parent Component Id: {}", component.id);
-                        let old_state = RUNTIME.get_state(parent_component_id).unwrap_or(0u32);
-                        RUNTIME.set_state(parent_component_id, old_state + 1u32);
-                        break;
-                    }
-*/
-
-                    /*if let Some(component_tree) = &app.component_tree {
-                        for component in component_tree.pre_order_iter() {
-                            println!("Component: {}", component.id);
-                        }
-                    }*/
                     {
                         let q = app.element_tree.as_ref().unwrap();
                         let fiber: FiberNode = FiberNode {
                             element: Some(q.as_ref()),
-                            component: Some(app.component_tree.as_ref().unwrap())
+                            component: Some(app.component_tree.as_ref().unwrap()),
                         };
 
                         for f in fiber.level_order_iter().collect::<Vec<FiberNode>>().iter().rev() {
@@ -387,17 +357,18 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                                 if !in_bounds {
                                     continue;
                                 }
-                                
+
                                 if let Some(update) = f.component.unwrap().update {
                                     update(f.component.unwrap().id, Message::UserMessage(Box::new(5)));
                                 }
 
-                                println!("Element: {}, Component: {}", f.element.unwrap().name(), f.component.unwrap().id);
+                                println!(
+                                    "Element: {}, Component: {}",
+                                    f.element.unwrap().name(),
+                                    f.component.unwrap().id
+                                );
                             } else if f.component.is_some() {
                                 println!("Component: {}", f.component.unwrap().id);
-                                let id = f.component.unwrap().id;
-                               /* let old_state = RUNTIME.get_state(id).unwrap_or(0u32);
-                                RUNTIME.set_state(id, old_state + 1u32);*/
                                 if let Some(update) = f.component.unwrap().update {
                                     update(f.component.unwrap().id, Message::UserMessage(Box::new(5)));
                                 }
@@ -408,15 +379,10 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
                                     continue;
                                 }
 
-                            /*    let id= element.component_id();
-                                let old_state = RUNTIME.get_state(id).unwrap_or(0u32);
-                                RUNTIME.set_state(id, old_state + 1u32);*/
-
                                 println!("Element: {}", f.element.unwrap().name());
                             }
                         }
                     }
-
 
                     app.window.as_ref().unwrap().request_redraw();
                     send_response(id, wait_for_response, &tx).await;
@@ -430,14 +396,23 @@ async fn async_main(application: ComponentSpecification, mut rx: mpsc::Receiver<
     }
 }
 
-fn layout(_window_width: f32, _window_height: f32, render_context: &mut RenderContext, root_element: &mut Box<dyn Element>) -> Box<dyn Element> {
+fn layout(
+    _window_width: f32,
+    _window_height: f32,
+    render_context: &mut RenderContext,
+    root_element: &mut Box<dyn Element>,
+) -> Box<dyn Element> {
     let mut taffy_tree: taffy::TaffyTree<LayoutContext> = taffy::TaffyTree::new();
     let root_node = root_element.compute_layout(&mut taffy_tree, &mut render_context.font_system);
 
     taffy_tree
-        .compute_layout_with_measure(root_node, taffy::Size::max_content(), |known_dimensions, available_space, _node_id, node_context, style| {
-            measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system)
-        })
+        .compute_layout_with_measure(
+            root_node,
+            taffy::Size::max_content(),
+            |known_dimensions, available_space, _node_id, node_context, _style| {
+                measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system)
+            },
+        )
         .unwrap();
 
     root_element.finalize_layout(&mut taffy_tree, root_node, 0.0, 0.0);
