@@ -4,7 +4,7 @@ use oku::user::components::component::UpdateFn;
 use oku::user::components::props::Props;
 use oku::user::elements::container::Container;
 use oku::user::elements::text::Text;
-use oku::events::Message;
+use oku_core::engine::events::Message;
 use oku::user::reactive::reactive::RUNTIME;
 
 use oku::RendererType::Wgpu;
@@ -12,7 +12,7 @@ use oku::{component, oku_main_with_options, OkuOptions};
 use std::any::Any;
 use std::future::Future;
 use oku_core::user::elements::element::Element;
-use oku_core::events::OkuEvent;
+use oku_core::engine::events::OkuEvent;
 
 pub fn app(
     _props: Option<Props>,

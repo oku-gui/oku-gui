@@ -1,8 +1,8 @@
 use crate::user::elements::element::{CommonElementData, Element};
 use crate::user::elements::layout_context::LayoutContext;
 use crate::user::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
-use crate::renderer::color::Color;
-use crate::renderer::renderer::{Rectangle, Renderer};
+use crate::engine::renderer::color::Color;
+use crate::engine::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};

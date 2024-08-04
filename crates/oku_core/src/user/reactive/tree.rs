@@ -1,6 +1,6 @@
 use crate::user::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn};
 use crate::user::elements::element::Element;
-use crate::widget_id::create_unique_widget_id;
+use crate::user::reactive::element_id::create_unique_element_id;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -113,10 +113,10 @@ pub(crate) fn create_trees_from_render_specification(
                         if new_tag == old_tag {
                             (*tree_node.old_component_node.unwrap()).id
                         } else {
-                            create_unique_widget_id()
+                            create_unique_element_id()
                         }
                     } else {
-                        create_unique_widget_id()
+                        create_unique_element_id()
                     };
 
                     element.set_component_id(id);
@@ -190,10 +190,10 @@ pub(crate) fn create_trees_from_render_specification(
                             // If the old tag is the same as the new tag, we can reuse the old id.
                             (*tree_node.old_component_node.unwrap()).id
                         } else {
-                            create_unique_widget_id()
+                            create_unique_element_id()
                         }
                     } else {
-                        create_unique_widget_id()
+                        create_unique_element_id()
                     };
 
                     let new_component = component_spec(props, children, id);

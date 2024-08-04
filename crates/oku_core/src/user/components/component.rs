@@ -1,6 +1,6 @@
 use crate::user::components::props::Props;
 use crate::user::elements::element::Element;
-use crate::events::Message;
+use crate::engine::events::Message;
 use std::any::{Any, TypeId};
 use std::future::Future;
 
@@ -45,5 +45,5 @@ where
             RUNTIME.set_state(0, value);
         }
     */
-    fn update(&self, id: u64, message: crate::events::Message);
+    fn update(&self, id: u64, message: crate::engine::events::Message);
 }

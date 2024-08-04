@@ -1,4 +1,4 @@
-use crate::renderer::color::Color;
+use crate::engine::renderer::color::Color;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Rectangle {

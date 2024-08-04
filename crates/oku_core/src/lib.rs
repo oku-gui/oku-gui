@@ -1,18 +1,12 @@
-pub mod application;
 pub mod user;
-//mod lib2;
-pub mod renderer;
-mod widget_id;
 
-mod component_pre_order_iterator;
-pub mod events;
-mod fiber_node;
 #[cfg(test)]
 mod tests;
+pub mod engine;
 
 use crate::user::components::component::ComponentSpecification;
-use crate::fiber_node::FiberNode;
-use crate::widget_id::reset_unique_widget_id;
+use user::reactive::fiber_node::FiberNode;
+use user::reactive::element_id::reset_unique_element_id;
 use cosmic_text::{FontSystem, SwashCache};
 use std::sync::Arc;
 use std::time;
@@ -26,14 +20,14 @@ use winit::window::{Window, WindowId};
 
 use crate::user::elements::container::Container;
 use crate::user::elements::element::Element;
-use crate::user::elements::layout_context::{measure_content, LayoutContext};
+use crate::user::elements::layout_context::{LayoutContext, measure_content};
 use crate::user::elements::style::Unit;
-use crate::events::{ClickMessage, Message, OkuEvent};
-use crate::user::reactive::tree::{create_trees_from_render_specification, ComponentTreeNode};
-use crate::renderer::color::Color;
-use crate::renderer::renderer::Renderer;
-use crate::renderer::softbuffer::SoftwareRenderer;
-use crate::renderer::wgpu::WgpuRenderer;
+use engine::events::{ClickMessage, Message, OkuEvent};
+use crate::user::reactive::tree::{ComponentTreeNode, create_trees_from_render_specification};
+use engine::renderer::color::Color;
+use engine::renderer::renderer::Renderer;
+use engine::renderer::softbuffer::SoftwareRenderer;
+use engine::renderer::wgpu::WgpuRenderer;
 const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 
 struct App {
@@ -316,7 +310,7 @@ async fn async_main(
                 InternalMessage::Confirmation => {}
                 InternalMessage::Resume(window, renderer) => {
                     if app.element_tree.is_none() {
-                        reset_unique_widget_id();
+                        reset_unique_element_id();
                         //let new_view = app.app.view();
                         //app.element_tree = Some(new_view);
                     }

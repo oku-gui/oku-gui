@@ -1,5 +1,5 @@
-use crate::renderer::color::Color;
-use crate::renderer::renderer::{Rectangle, Renderer};
+use crate::engine::renderer::color::Color;
+use crate::engine::renderer::renderer::{Rectangle, Renderer};
 use glam;
 use image::codecs::png::PngEncoder;
 use image::{ExtendedColorType, GenericImageView, ImageEncoder};
