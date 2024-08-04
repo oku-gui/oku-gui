@@ -3,6 +3,7 @@ pub mod user;
 #[cfg(test)]
 mod tests;
 pub mod engine;
+mod platform;
 
 use crate::user::components::component::ComponentSpecification;
 use user::reactive::fiber_node::FiberNode;
@@ -28,6 +29,8 @@ use engine::renderer::color::Color;
 use engine::renderer::renderer::Renderer;
 use engine::renderer::softbuffer::SoftwareRenderer;
 use engine::renderer::wgpu::WgpuRenderer;
+use crate::platform::runtimes::native::create_native_runtime;
+
 const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 
 struct App {
@@ -97,7 +100,7 @@ pub fn oku_main(application: ComponentSpecification) {
 }
 
 pub fn oku_main_with_options(application: ComponentSpecification, options: Option<OkuOptions>) {
-    let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("Failed to create runtime");
+    let rt = create_native_runtime();
 
     let event_loop = EventLoop::new().expect("Failed to create winit event loop");
 
