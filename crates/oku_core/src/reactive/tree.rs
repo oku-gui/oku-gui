@@ -14,6 +14,7 @@ pub struct ComponentTreeNode {
     pub children: Vec<ComponentTreeNode>,
     pub children_keys: HashMap<String, u64>,
     pub id: u64,
+    pub(crate) parent_id: Option<u64>,
 }
 
 #[derive(Clone)]
@@ -64,6 +65,7 @@ pub(crate) fn create_trees_from_render_specification(
             children: vec![],
             children_keys: HashMap::new(),
             id: 0,
+            parent_id: None,
         };
 
         let mut old_component_tree_as_ptr = old_component_tree.map(|old_root| old_root as *const ComponentTreeNode);
@@ -132,6 +134,7 @@ pub(crate) fn create_trees_from_render_specification(
                         children: vec![],
                         children_keys: HashMap::new(),
                         id,
+                        parent_id: Some((*parent_component_ptr).id),
                     };
 
                     // Add the new component node to the tree and get a pointer to it.
@@ -203,6 +206,7 @@ pub(crate) fn create_trees_from_render_specification(
                         children: vec![],
                         children_keys: HashMap::new(),
                         id,
+                        parent_id: Some((*parent_component_ptr).id),
                     };
 
                     // Add the current child id to the children_keys hashmap in the parent.

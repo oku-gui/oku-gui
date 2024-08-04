@@ -11,13 +11,16 @@ use taffy::{NodeId, TaffyTree};
 #[derive(Clone, Debug, Default)]
 pub struct CommonElementData {
     pub style: Style,
-    pub children: Vec<Box<dyn Element>>,
+    /// The children of the element.
+    pub(crate) children: Vec<Box<dyn Element>>,
     pub computed_x: f32,
     pub computed_y: f32,
     pub computed_width: f32,
     pub computed_height: f32,
     pub computed_padding: [f32; 4],
+    /// A user-defined id for the element.
     pub id: Option<String>,
+    /// The id of the component that this element belongs to.
     pub component_id: u64,
 }
 

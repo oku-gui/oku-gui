@@ -298,7 +298,7 @@ async fn async_main(
                     } else {
                         root.style_mut().height = Unit::Px(renderer.surface_height());
                     }
-                    
+
                     root = layout(
                         renderer.surface_width(),
                         renderer.surface_height(),
@@ -358,63 +358,64 @@ async fn async_main(
                         };
 
                         let mut event_status = EventStatus::BoundsChecking;
-                        let mut propagating_component_id: u64 = 0;
-                        let mut source_element_id: Option<String> = None;
+                        let mut target_component_id: Option<u64> = None;
+                        let mut target_element_id: Option<String> = None;
                         for fiber_node in fiber.level_order_iter().collect::<Vec<FiberNode>>().iter().rev() {
                             if let Some(_element) = fiber_node.element {
                                 let in_bounds = _element.in_bounds(app.mouse_position.0, app.mouse_position.1);
-                                println!("Fiber Node - Element: {} - {} - in bounds: {}", _element.name(), _element.component_id(), in_bounds);
+                                println!(
+                                    "Fiber Node - Element: {} - {} - in bounds: {}",
+                                    _element.name(),
+                                    _element.component_id(),
+                                    in_bounds
+                                );
                             }
                             if let Some(_component) = fiber_node.component {
                                 println!("Fiber Node - Component: {} - {}", _component.tag, _component.id);
                             }
                             println!("Event status: {:?}", event_status);
-                            match event_status {
-                                EventStatus::BoundsChecking => {
-                                    if let Some(element) = fiber_node.element {
-                                        let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
-                                        if in_bounds {
-                                            propagating_component_id = element.component_id();
-                                            event_status = EventStatus::Propagating;
-                                            source_element_id = element.id().clone();
-                                        }
+                            if let Some(element) = fiber_node.element {
+                                let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
+                                if in_bounds {
+                                    target_component_id = Some(element.component_id());
+                                    event_status = EventStatus::Propagating;
+                                    target_element_id = element.id().clone();
+                                    break;
+                                }
+                            }
+                        }
+                        if let Some(target_component_id) = target_component_id {
+                            println!("Target component id: {}", target_component_id);
+
+                            // Do a pre-order traversal of the component tree to find the target component
+                            let target_component = app.component_tree.as_ref().unwrap().pre_order_iter().find(|node| node.id == target_component_id).unwrap();
+                            let mut to_visit = Some(target_component);
+
+                            while let Some(node) = to_visit {
+                                if let Some(update_fn) = node.update {
+                                    let event = OkuEvent::Click(ClickMessage {
+                                        mouse_input: MouseInput {
+                                            device_id: _mouse_input.device_id,
+                                            state: _mouse_input.state,
+                                            button: _mouse_input.button,
+                                        },
+                                        x: app.mouse_position.0 as f64,
+                                        y: app.mouse_position.1 as f64,
+                                    });
+                                    println!("Calling update function");
+                                    let res = update_fn(node.id, Message::OkuMessage(event), target_element_id.clone());
+                                    if res.0 {
+                                        break;
                                     }
                                 }
-                                EventStatus::Propagating => {
-                                    if let Some(component) = fiber_node.component.as_ref() {
-                                        if component.is_element {
-                                            continue;
-                                        }
 
-                                        let mut does_component_contain_clicked_element = false;
-                                        for child in component.children.iter() {
-                                            if propagating_component_id == child.id {
-                                                does_component_contain_clicked_element = true;
-                                                break;
-                                            }
-                                        }
-
-                                     /*   if !does_component_contain_clicked_element {
-                                            continue;
-                                        }*/
-
-                                        if let Some(update_fn) = component.update {
-                                            let event = OkuEvent::Click(ClickMessage {
-                                                mouse_input: MouseInput {
-                                                    device_id: _mouse_input.device_id,
-                                                    state: _mouse_input.state,
-                                                    button: _mouse_input.button,
-                                                },
-                                                x: app.mouse_position.0 as f64,
-                                                y: app.mouse_position.1 as f64,
-                                            });
-                                            println!("Calling update function");
-                                            let res = update_fn(component.id, Message::OkuMessage(event), source_element_id.clone());
-                                            if res.0 {
-                                                break;
-                                            }
-                                        }
-                                    }
+                                if node.parent_id.is_none() {
+                                    to_visit = None;
+                                } else {
+                                    let parent_id = node.parent_id.unwrap();
+                                    to_visit = app.component_tree.as_ref().unwrap().pre_order_iter().find(|node2| { 
+                                        node2.id == parent_id
+                                    });
                                 }
                             }
                         }
