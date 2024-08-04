@@ -128,6 +128,7 @@ async fn request_device_and_queue(adapter: &wgpu::Adapter) -> (wgpu::Device, wgp
                 label: wgpu::Label::from("oku_wgpu_renderer"),
                 required_features: wgpu::Features::empty(),
                 required_limits: wgpu::Limits::default(),
+                memory_hints: Default::default(),
             },
             None, // Trace path
         )
@@ -286,13 +287,13 @@ impl<'a> WgpuRenderer<'a> {
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 compilation_options: Default::default(),
                 buffers: &[Vertex::description()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: surface_config.format,

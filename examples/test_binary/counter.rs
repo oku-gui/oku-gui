@@ -80,7 +80,25 @@ fn counter_update(id: u64, message: Message, source_element: Option<String>) -> 
 
 fn main() {
     oku_main_with_options(
-        component!(app).into(),
+        ComponentSpecification {
+            component: Container::new().into(),
+            key: None,
+            props: None,
+            children: vec![
+                ComponentSpecification {
+                    component: component!(app),
+                    key: None,
+                    props: None,
+                    children: vec![],
+                },
+                ComponentSpecification {
+                    component: component!(app),
+                    key: None,
+                    props: None,
+                    children: vec![],
+                },
+            ],
+        },
         Some(OkuOptions { renderer: Wgpu }),
     );
 }
