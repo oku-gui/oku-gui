@@ -22,3 +22,7 @@ members = [
 [[example]]
 name = "counter"
 path = "examples/test_binary/counter.rs"
+
+[[example]]
+name = "accordion"
+path = "examples/accordion/accordion.rs"
