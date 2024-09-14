@@ -8,10 +8,10 @@ resolver = "2"
 [dependencies]
 
 winit = { git = "https://github.com/rust-windowing/winit", rev = "dfea49f48850670cdfe3dc91949a9f8f2e267a38" }
-tiny-skia = { git = "https://github.com/RazrFalcon/tiny-skia", rev = "eec0a4701a8413759a3dd51b443b8851ce4c546a" }
+tiny-skia = { git = "https://github.com/RazrFalcon/tiny-skia", rev = "01c86cec363e173e1b9d939da2e5aca098b2558c" }
 softbuffer = { git = "https://github.com/rust-windowing/softbuffer", rev = "ad3bd6d2f930391e5840752a0f4514874821d5ea" }
-cosmic-text = { git = "https://github.com/pop-os/cosmic-text", rev = "e16b39f29c84773a05457fe39577a602de27855c" }
-taffy = { git = "https://github.com/DioxusLabs/taffy", rev = "da888af8336c498edd4fcff6d86d68dd685921ec" }
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text", rev = "e8f567cf5b456dfab749a575c257acaa36f622d9" }
+taffy = { git = "https://github.com/DioxusLabs/taffy", rev = "9915b967e9809dc57f210de8fe5f7510e66806d6" }
 wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "eb18854b46a4d6c973a1981be6739ec19282f2f3" }
 accesskit = "0.16.0"
 #accesskit_winit = { version = "0.18.0" }
@@ -27,13 +27,13 @@ bytemuck = { version = "1.18.0", features = ["derive"] }
 image = { version = "0.25.2", default-features = false, features = ["png", "jpeg"] }
 
 cfg-if = "1.0.0"
-once_cell = "1.19.0"
+once_cell = "1.20.0"
 slotmap = "1.0.7"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
-wasm-bindgen = "0.2.92"
-wasm-bindgen-futures = "0.4.42"
+wasm-bindgen = "0.2.93"
+wasm-bindgen-futures = "0.4.43"
 web-sys = { version = "0.3.69", features = [
     "Document",
     "Window",
@@ -43,7 +43,7 @@ console_log = "1.0"
 #wgpu = { version = "0.19.3", features = ["webgpu"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.38.0", features = ["full"] }
+tokio = { version = "1.40.0", features = ["full"] }
 
 [features]
 dynamic_linking = []
