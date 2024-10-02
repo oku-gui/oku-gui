@@ -34,6 +34,7 @@ pub struct ComponentSpecification {
     pub props: Option<Props>,
     pub children: Vec<ComponentSpecification>,
 }
+
 #[macro_export]
 macro_rules! component {
     ($name:ident) => {

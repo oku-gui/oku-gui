@@ -14,14 +14,17 @@ use oku_core::user::components::component::UpdateResult;
 use oku_core::user::elements::element::Element;
 use std::any::Any;
 use std::future::Future;
+use std::pin::Pin;
+use bytes::Bytes;
 use std::sync::Arc;
+use oku_core::user::elements::image::Image;
 
 pub fn app(
     _props: Option<Props>,
     _children: Vec<ComponentSpecification>,
     id: u64,
 ) -> (ComponentSpecification, Option<UpdateFn>) {
-    let counter = RUNTIME.get_state(id).unwrap_or(0);
+    let counter: Option<Bytes> = RUNTIME.get_state(id).unwrap_or(None);
 
     let mut button = Container::new();
     button.set_id(Some("increment".to_string()));
@@ -29,13 +32,19 @@ pub fn app(
     let mut button_label = Text::new("increment");
     button_label.set_id(Some("increment".to_string()));
 
+    let counter = if let Some(data) = counter {
+        data.len().to_string()
+    } else {
+        String::from("None")
+    };
+
     let root = ComponentSpecification {
         component: Container::new().into(),
         key: Some("counter container".to_string()),
         props: None,
         children: vec![
             ComponentSpecification {
-                component: Text::new(format!("Counter: {}", counter).as_str()).into(),
+                component: Image::new("a.jpg").into(),
                 key: Some("counter text".to_string()),
                 props: None,
                 children: vec![],
@@ -62,40 +71,34 @@ fn counter_update(id: u64, message: Message, source_element: Option<String>) -> 
     }
 
     let counter = RUNTIME.get_state(id).unwrap_or(0);
-    let new_counter = match message {
+    let res: Option<Pin<Box<dyn Future<Output = Box<dyn Any + Send>> + Send>>> = match message {
         Message::OkuMessage(oku_message) => match oku_message {
-            OkuEvent::Click(click_message) => counter + 1,
-        },
-        Message::UserMessage(user_message) => {
-            if let Ok(boxed_i32) = user_message.downcast::<i32>() {
-                println!("Got user event");
-                *boxed_i32
-            } else {
-                -1
+            OkuEvent::Click(click_message) => {
+                Some(Box::pin(async {
+
+                    let res = reqwest::get("https://picsum.photos/800").await;
+                    let bytes = res.unwrap().bytes().await.ok();
+                    let boxed: Box<dyn Any + Send> = Box::new(bytes);
+
+                    boxed
+                }))
             }
         },
-        _ => counter,
+        Message::UserMessage(user_message) => {
+            if let Ok(image_data) = user_message.downcast::<Option<Bytes>>() {
+                std::fs::write("a.jpg", image_data.clone().unwrap().as_ref()).ok();
+                RUNTIME.set_state::<Option<Bytes>>(id, *image_data);
+                println!("got the data");
+            }
+
+            None
+        },
+        _ => None,
     };
-    RUNTIME.set_state(id, new_counter);
-    println!("Counter: {}", new_counter);
+
     UpdateResult {
         propagate: true,
-        result: Some(Box::pin(async {
-            
-            let foo = async {
-                1
-            };
-
-            let bar = async {
-                1
-            };
-            
-            let car = oku::join!(foo, bar);
-            
-            let boxed: Box<dyn Any + Send> = Box::new(3_i32);
-
-            boxed
-        })),
+        result: res,
     }
 }
 
