@@ -20,6 +20,15 @@ pub struct UpdateResult {
     pub result: Option<PinnedFutureAny>
 }
 
+impl UpdateResult {
+   pub fn new(propagate: bool, future: Option<PinnedFutureAny>) -> UpdateResult {
+       UpdateResult {
+           propagate,
+           result: future
+       }
+   }
+}
+
 pub type UpdateFn = fn(id: u64, message: Message, source_element_id: Option<String>) -> UpdateResult;
 
 #[derive(Clone)]

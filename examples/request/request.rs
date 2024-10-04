@@ -96,10 +96,7 @@ fn counter_update(id: u64, message: Message, source_element: Option<String>) -> 
         _ => None,
     };
 
-    UpdateResult {
-        propagate: true,
-        result: res,
-    }
+    UpdateResult::new(true, res)
 }
 
 fn main() {

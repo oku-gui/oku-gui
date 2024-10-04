@@ -339,7 +339,7 @@ async fn async_main(
                     
                     for event in app.update_queue.drain(..) {
                         tokio::spawn(async move {
-                            let update_result = event.update_result.result.unwrap();;
+                            let update_result = event.update_result.result.unwrap();
                             (event.update_function)(event.source_component, Message::UserMessage(update_result.await), event.source_element);
                         });
                     }

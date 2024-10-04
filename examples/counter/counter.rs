@@ -13,6 +13,7 @@ use std::any::Any;
 use std::future::Future;
 use oku_core::user::elements::element::Element;
 use oku_core::engine::events::OkuEvent;
+use oku_core::user::components::component::UpdateResult;
 
 pub fn app(
     _props: Option<Props>,
@@ -56,9 +57,9 @@ pub fn app(
     (root, Some(counter_update))
 }
 
-fn counter_update(id: u64, message: Message, source_element: Option<String>) -> (bool, Option<Box<dyn Future<Output=Box<dyn Any>>>>) {
+fn counter_update(id: u64, message: Message, source_element: Option<String>) -> UpdateResult {
     if source_element.as_deref() != Some("increment") {
-        return (false, None);
+        return UpdateResult::default();
     }
 
     let counter = RUNTIME.get_state(id).unwrap_or(0);
@@ -72,7 +73,7 @@ fn counter_update(id: u64, message: Message, source_element: Option<String>) -> 
     };
     RUNTIME.set_state(id, new_counter);
     println!("Counter: {}", new_counter);
-    (true, None)
+    UpdateResult::new(true, None)
 }
 
 fn main() {

@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::future::Future;
 use oku_core::engine::events::{Message, OkuEvent};
-use oku_core::user::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn};
+use oku_core::user::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn, UpdateResult};
 use oku_core::user::components::props::Props;
 use oku_core::user::elements::container::Container;
 use oku_core::user::elements::element::Element;
@@ -36,10 +36,10 @@ pub(crate) fn accordion(_props: Option<Props>, children: Vec<ComponentSpecificat
     (root, Some(accordion_update))
 }
 
-pub(crate) fn accordion_update(id: u64, message: Message, source_element: Option<String>) -> (bool, Option<Box<dyn Future<Output=Box<dyn Any>>>>) {
+pub(crate) fn accordion_update(id: u64, message: Message, source_element: Option<String>) -> UpdateResult {
 
     if source_element != Some("toggle accordion header".to_string()) {
-        return (true, None);
+        return UpdateResult::new(true, None);
     }
 
     let render_body = RUNTIME.get_state(id).unwrap_or(false);
@@ -53,7 +53,7 @@ pub(crate) fn accordion_update(id: u64, message: Message, source_element: Option
         _ => render_body,
     };
     RUNTIME.set_state(id, render_body);
-    (false, None)
+    UpdateResult::default()
 }
 
 pub(crate) fn accordion_header(_props: Option<Props>, children: Vec<ComponentSpecification>, _id: u64) -> (ComponentSpecification, Option<UpdateFn>) {
