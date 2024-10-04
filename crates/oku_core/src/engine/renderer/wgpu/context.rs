@@ -9,6 +9,7 @@ pub struct Context<'a> {
     pub(crate) surface_clear_color: Color,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) default_texture: Texture,
+    pub(crate) is_srgba_format: bool,
 }
 
 pub async fn request_adapter(instance: wgpu::Instance, surface: &wgpu::Surface<'_>) -> wgpu::Adapter {

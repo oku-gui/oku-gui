@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 use crate::engine::renderer::color::Color;
 use crate::engine::renderer::renderer::Rectangle;
-use crate::engine::renderer::wgpu::camera::{Camera, CameraUniform};
+use crate::engine::renderer::wgpu::camera::{Camera};
 use crate::engine::renderer::wgpu::context::Context;
 use crate::engine::renderer::wgpu::texture::Texture;
+use crate::engine::renderer::wgpu::uniform::GlobalUniform;
 use crate::engine::renderer::wgpu::vertex::Vertex;
 
 fn bind_group_from_2d_texture(
@@ -36,9 +37,9 @@ pub struct RectangleBatch {
 
 pub struct Pipeline2D {
     pub(crate) camera: Camera,
-    pub(crate) camera_uniform: CameraUniform,
-    pub(crate) camera_buffer: wgpu::Buffer,
-    pub(crate) camera_bind_group: wgpu::BindGroup,
+    pub(crate) global_uniform: GlobalUniform,
+    pub(crate) global_buffer: wgpu::Buffer,
+    pub(crate) global_bind_group: wgpu::BindGroup,
     pub(crate) pipeline: wgpu::RenderPipeline,
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) rectangle_batch: Vec<RectangleBatch>,
@@ -77,19 +78,19 @@ impl Pipeline2D {
             z_far: 100.0,
         };
 
-        let mut camera_uniform = CameraUniform::new();
-        camera_uniform.update_view_proj(&camera);
+        let mut global_uniform = GlobalUniform::new();
+        global_uniform.set_view_proj(&camera);
 
-        let camera_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Camera Buffer"),
-            contents: bytemuck::cast_slice(&[camera_uniform]),
+        let global_buffer = context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Global Buffer"),
+            contents: bytemuck::bytes_of(&global_uniform),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-        let camera_bind_group_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let global_bind_group_layout = context.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -97,22 +98,22 @@ impl Pipeline2D {
                 },
                 count: None,
             }],
-            label: Some("camera_bind_group_layout"),
+            label: Some("global_bind_group_layout"),
         });
 
-        let camera_bind_group = context.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &camera_bind_group_layout,
+        let global_bind_group = context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &global_bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: camera_buffer.as_entire_binding(),
+                resource: global_buffer.as_entire_binding(),
             }],
-            label: Some("camera_bind_group"),
+            label: Some("global_bind_group"),
         });
 
         let shader = context.device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
         let render_pipeline_layout = context.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
+            bind_group_layouts: &[&texture_bind_group_layout, &global_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -163,12 +164,12 @@ impl Pipeline2D {
             multiview: None,
             cache: None,
         });
-        
+
         Pipeline2D {
             camera,
-            camera_uniform,
-            camera_buffer,
-            camera_bind_group,
+            global_uniform,
+            global_buffer,
+            global_bind_group,
             pipeline: render_pipeline,
             texture_bind_group_layout,
             rectangle_batch: vec![],
@@ -292,7 +293,7 @@ impl Pipeline2D {
             next_starting_index + 3,
         ]);
     }
-    
+
     pub fn submit(&mut self, context: &mut Context) {
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder"),
@@ -391,7 +392,7 @@ impl Pipeline2D {
                 {
                     _render_pass.set_pipeline(&self.pipeline);
                     _render_pass.set_bind_group(0, Some(&bind_groups[index]), &[]);
-                    _render_pass.set_bind_group(1, Some(&self.camera_bind_group), &[]);
+                    _render_pass.set_bind_group(1, Some(&self.global_bind_group), &[]);
                     _render_pass.set_vertex_buffer(0, vertex_buffers.get(index).unwrap().slice(..));
                     _render_pass.set_index_buffer(index_buffers.get(index).unwrap().slice(..), wgpu::IndexFormat::Uint32);
                     _render_pass.draw_indexed(0..(batch.rectangle_indices.len() as u32), 0, 0..1);

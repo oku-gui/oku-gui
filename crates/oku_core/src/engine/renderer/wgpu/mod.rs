@@ -47,6 +47,7 @@ impl<'a> WgpuRenderer<'a> {
             surface,
             surface_config,
             surface_clear_color: Color::new_from_rgba_u8(255, 255, 255, 255),
+            is_srgba_format: false,
         };
 
         let pipeline2d = Pipeline2D::new(&context);
@@ -82,8 +83,8 @@ impl Renderer for WgpuRenderer<'_> {
             z_far: 100.0,
         };
 
-        self.pipeline2d.camera_uniform.update_view_proj(&self.pipeline2d.camera);
-        self.context.queue.write_buffer(&self.pipeline2d.camera_buffer, 0, bytemuck::cast_slice(&[self.pipeline2d.camera_uniform.view_proj]));
+        self.pipeline2d.global_uniform.set_view_proj(&self.pipeline2d.camera);
+        self.context.queue.write_buffer(&self.pipeline2d.global_buffer, 0, bytemuck::cast_slice(&[self.pipeline2d.global_uniform.view_proj]));
     }
 
     fn surface_set_clear_color(&mut self, color: Color) {
