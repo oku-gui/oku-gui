@@ -338,12 +338,13 @@ async fn async_main(
                     }
                     
                     for event in app.update_queue.drain(..) {
+                        let w = app.window.clone();
                         tokio::spawn(async move {
                             let update_result = event.update_result.result.unwrap();
                             (event.update_function)(event.source_component, Message::UserMessage(update_result.await), event.source_element);
+                            w.as_ref().unwrap().request_redraw();
                         });
                     }
-                    app.window.as_ref().unwrap().request_redraw();
                 }
             }
         }
