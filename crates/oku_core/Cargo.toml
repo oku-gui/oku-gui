@@ -14,6 +14,7 @@ cosmic-text = { git = "https://github.com/pop-os/cosmic-text", rev = "4fe90bb612
 taffy = { git = "https://github.com/DioxusLabs/taffy", rev = "eb27797b0d1935bffd781531f22312bb2b9642f0" }
 wgpu = { git = "https://github.com/gfx-rs/wgpu", rev = "2021e7f29f0204a0b6b22bc59844af1e93984465" }
 accesskit = "0.16.1"
+reqwest = "0.12.8"
 #accesskit_winit = { version = "0.18.0" }
 
 dyn-clone = "1.0.17"

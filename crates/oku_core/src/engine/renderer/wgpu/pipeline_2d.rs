@@ -7,6 +7,7 @@ use crate::engine::renderer::wgpu::context::Context;
 use crate::engine::renderer::wgpu::texture::Texture;
 use crate::engine::renderer::wgpu::uniform::GlobalUniform;
 use crate::engine::renderer::wgpu::vertex::Vertex;
+use crate::platform::resource_manager::RESOURCE_MANAGER;
 
 fn bind_group_from_2d_texture(
     device: &wgpu::Device,
@@ -310,6 +311,9 @@ impl Pipeline2D {
             for batch in self.rectangle_batch.iter_mut() {
                 // Get the batch texture or use the default white texture if we cannot find the batch texture.
                 let texture = if let Some(texture_path) = batch.texture_path.clone() {
+
+                    // RESOURCE_MANAGER.resources.
+                    
                     if let Some(texture) = self.textures.get(&texture_path) {
                         texture
                     } else {
