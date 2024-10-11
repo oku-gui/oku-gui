@@ -8,7 +8,7 @@ mod tests;
 use crate::user::components::component::{ComponentSpecification, UpdateFn, UpdateResult};
 use cosmic_text::{FontSystem, SwashCache};
 use std::any::Any;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::ops::Deref;
@@ -57,6 +57,7 @@ struct App {
     component_tree: Option<ComponentTreeNode>,
     mouse_position: (f32, f32),
     update_queue: VecDeque<UpdateQueueEntry>,
+    user_state: HashMap<u64, Box<dyn Any + Send>>
 }
 
 pub struct RenderContext {
@@ -305,6 +306,7 @@ async fn async_main(
         component_tree: None,
         mouse_position: (0.0, 0.0),
         update_queue: VecDeque::new(),
+        user_state: Default::default(),
     });
 
     info!("starting main event loop");
@@ -511,7 +513,7 @@ async fn on_request_redraw(tx: &Sender<(u64, InternalMessage)>, app: &mut Box<Ap
 
     let window_element = Container::new().into();
     let old_component_tree = app.component_tree.as_ref();
-    let new_tree = create_trees_from_render_specification(app.app.clone(), window_element, old_component_tree);
+    let new_tree = create_trees_from_render_specification(app.app.clone(), window_element, old_component_tree, &mut app.user_state);
     app.component_tree = Some(new_tree.0);
 
     let mut root = new_tree.1;

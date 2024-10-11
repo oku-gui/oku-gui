@@ -5,22 +5,30 @@ use oku::user::components::props::Props;
 use oku::user::elements::container::Container;
 use oku::user::elements::text::Text;
 use oku_core::engine::events::Message;
-use oku::user::reactive::reactive::RUNTIME;
 
 use oku::RendererType::Wgpu;
 use oku::{component, oku_main_with_options, OkuOptions};
 use std::any::Any;
 use std::future::Future;
+use std::ops::Deref;
 use oku_core::user::elements::element::Element;
 use oku_core::engine::events::OkuEvent;
 use oku_core::user::components::component::UpdateResult;
 
 pub fn app(
+    state: Option<&dyn Any>,
     _props: Option<Props>,
     _children: Vec<ComponentSpecification>,
     id: u64,
 ) -> (ComponentSpecification, Option<UpdateFn>) {
-    let counter = RUNTIME.get_state(id).unwrap_or(0);
+    let counter: i32 = match state {
+        Some(state) => {
+            *state.downcast_ref().unwrap()
+        },
+        None => {
+            0
+        }
+    };
     
     let mut button = Container::new();
     button.set_id(Some("increment".to_string()));
@@ -62,7 +70,7 @@ fn counter_update(id: u64, message: Message, source_element: Option<String>) -> 
         return UpdateResult::default();
     }
 
-    let counter = RUNTIME.get_state(id).unwrap_or(0);
+    let counter = 0;
     let new_counter = match message {
         Message::OkuMessage(oku_message) => {
             match oku_message {
@@ -71,7 +79,7 @@ fn counter_update(id: u64, message: Message, source_element: Option<String>) -> 
         },
         _ => counter,
     };
-    RUNTIME.set_state(id, new_counter);
+    //RUNTIME.set_state(id, new_counter);
     println!("Counter: {}", new_counter);
     UpdateResult::new(true, None)
 }

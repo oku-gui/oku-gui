@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::PinnedFutureAny;
 
 pub type ViewFn = fn(
+    data: Option<&dyn Any>,
     props: Option<Props>,
     children: Vec<ComponentSpecification>,
     id: u64,

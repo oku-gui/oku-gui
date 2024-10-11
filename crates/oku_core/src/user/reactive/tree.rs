@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::user::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn};
 use crate::user::elements::element::Element;
 use crate::user::reactive::element_id::create_unique_element_id;
@@ -54,6 +55,7 @@ pub(crate) fn create_trees_from_render_specification(
     component_specification: ComponentSpecification,
     mut root_element: Box<dyn Element>,
     old_component_tree: Option<&ComponentTreeNode>,
+    user_state: &mut HashMap<u64, Box<dyn Any + Send>>
 ) -> (ComponentTreeNode, Box<dyn Element>) {
     println!("-----------------------------------------");
     unsafe {
@@ -196,7 +198,8 @@ pub(crate) fn create_trees_from_render_specification(
                         create_unique_element_id()
                     };
 
-                    let new_component = component_spec(props, children, id);
+                    let state = user_state.get(&id);
+                    let new_component = component_spec(state.map(|f| f.as_ref() as &dyn Any), props, children, id);
 
                     let new_component_node = ComponentTreeNode {
                         is_element: false,

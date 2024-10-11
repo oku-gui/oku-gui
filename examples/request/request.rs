@@ -4,7 +4,7 @@ use oku::user::components::component::UpdateFn;
 use oku::user::components::props::Props;
 use oku::user::elements::container::Container;
 use oku::user::elements::text::Text;
-use oku::user::reactive::reactive::RUNTIME;
+//use oku::user::reactive::reactive::RUNTIME;
 use oku_core::engine::events::Message;
 
 use oku::RendererType::Wgpu;
@@ -21,11 +21,12 @@ use oku_core::PinnedFutureAny;
 use oku_core::user::elements::image::Image;
 
 pub fn app(
+    state: Option<&dyn Any>,
     _props: Option<Props>,
     _children: Vec<ComponentSpecification>,
     id: u64,
 ) -> (ComponentSpecification, Option<UpdateFn>) {
-    let counter: Option<Bytes> = RUNTIME.get_state(id).unwrap_or(None);
+    //let counter: Option<Bytes> = RUNTIME.get_state(id).unwrap_or(None);
 
     let mut button = Container::new();
     button.set_id(Some("increment".to_string()));
@@ -33,11 +34,11 @@ pub fn app(
     let mut button_label = Text::new("increment");
     button_label.set_id(Some("increment".to_string()));
 
-    let counter = if let Some(data) = counter {
+/*    let counter = if let Some(data) = counter {
         data.len().to_string()
     } else {
         String::from("None")
-    };
+    };*/
 
     let root = ComponentSpecification {
         component: Container::new().into(),
@@ -87,7 +88,7 @@ fn counter_update(id: u64, message: Message, source_element: Option<String>) -> 
         Message::UserMessage(user_message) => {
             if let Ok(image_data) = user_message.downcast::<Option<Bytes>>() {
                 std::fs::write("a.jpg", image_data.clone().unwrap().as_ref()).ok();
-                RUNTIME.set_state::<Option<Bytes>>(id, *image_data);
+                //RUNTIME.set_state::<Option<Bytes>>(id, *image_data);
                 println!("got the data");
             }
 
