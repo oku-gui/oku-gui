@@ -55,7 +55,7 @@ pub(crate) fn create_trees_from_render_specification(
     component_specification: ComponentSpecification,
     mut root_element: Box<dyn Element>,
     old_component_tree: Option<&ComponentTreeNode>,
-    user_state: &mut HashMap<u64, Option<Box<dyn Any + Send>>>
+    user_state: &mut HashMap<u64, Box<dyn Any + Send>>
 ) -> (ComponentTreeNode, Box<dyn Element>) {
     println!("-----------------------------------------");
     unsafe {
@@ -203,20 +203,16 @@ pub(crate) fn create_trees_from_render_specification(
                         panic!("{id} is None!");
                     }
                     let x = state.unwrap();
-                    let y: Option<&dyn Any> = match x {
-                        None => {None}
-                        Some(data) => {
-                            Some(data.as_ref())
-                        }
-                    };
-                    
-                    let new_component = component_spec(y, props, children, id);
+
+                    let new_component = component_spec(x, props, children, id);
+                    let default = new_component.0;
+                    user_state.insert(id, default);
 
                     let new_component_node = ComponentTreeNode {
                         is_element: false,
                         key: key.clone(),
                         tag: (*new_tag).clone(),
-                        update: new_component.1,
+                        update: new_component.2,
                         children: vec![],
                         children_keys: HashMap::new(),
                         id,
@@ -240,7 +236,7 @@ pub(crate) fn create_trees_from_render_specification(
 
                     // Add the computed component spec to the to visit list.
                     to_visit.push(TreeVisitorNode {
-                        component_specification: Rc::new(RefCell::new(new_component.0)),
+                        component_specification: Rc::new(RefCell::new(new_component.1)),
                         parent_element_ptr,
                         parent_component_node: new_component_pointer,
                         old_component_node: old_component_tree,

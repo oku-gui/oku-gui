@@ -57,7 +57,7 @@ struct App {
     component_tree: Option<ComponentTreeNode>,
     mouse_position: (f32, f32),
     update_queue: VecDeque<UpdateQueueEntry>,
-    user_state: HashMap<u64, Option<Box<dyn Any + Send>>>
+    user_state: HashMap<u64, Box<dyn Any + Send>>
 }
 
 pub struct RenderContext {
@@ -301,7 +301,9 @@ async fn async_main(
     app_tx: mpsc::Sender<(u64, bool, InternalMessage)>
 ) {
     let mut user_state = HashMap::new();
-    user_state.insert(0, None);
+    
+    //user_state.insert(0, Box::new(()));
+    
     let mut app = Box::new(App {
         app: application,
         window: None,

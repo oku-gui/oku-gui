@@ -8,11 +8,11 @@ use std::sync::Arc;
 use crate::PinnedFutureAny;
 
 pub type ViewFn = fn(
-    data: Option<&dyn Any>,
+    data: &(dyn Any + Send),
     props: Option<Props>,
     children: Vec<ComponentSpecification>,
     id: u64,
-) -> (ComponentSpecification, Option<UpdateFn>);
+) -> (Box<dyn Any + Send>, ComponentSpecification, Option<UpdateFn>);
 
 
 #[derive(Default)]
@@ -30,7 +30,7 @@ impl UpdateResult {
    }
 }
 
-pub type UpdateFn = fn(state: &mut Option<Box<dyn Any + Send>>, id: u64, message: Message, source_element_id: Option<String>) -> UpdateResult;
+pub type UpdateFn = fn(state: &mut Box<dyn Any + Send>, id: u64, message: Message, source_element_id: Option<String>) -> UpdateResult;
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
@@ -48,8 +48,25 @@ pub struct ComponentSpecification {
 
 #[macro_export]
 macro_rules! component {
+    // Match for an associated function or method of a struct
+    ($path:path) => {
+        {
+            let name = $path;
+            ComponentOrElement::ComponentSpec(
+                name,
+                std::any::type_name_of_val(&name).to_string(),
+                name.type_id(),
+            )
+        }
+    };
+
+    // Match for an identifier
     ($name:ident) => {
-        ComponentOrElement::ComponentSpec($name, std::any::type_name_of_val(&$name).to_string(), $name.type_id())
+        ComponentOrElement::ComponentSpec(
+            $name,
+            std::any::type_name_of_val(&$name).to_string(),
+            $name.type_id(),
+        )
     };
 }
 
@@ -58,6 +75,6 @@ where
     State: Clone + Send + Sized + 'static,
 {
     fn view(&self, props: Option<Props>, children: Vec<ComponentSpecification>, id: u64) -> ComponentSpecification;
-    
+
     fn update(&self, id: u64, message: crate::engine::events::Message);
 }
