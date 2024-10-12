@@ -7,7 +7,7 @@ use oku::RendererType::Wgpu;
 use oku::{oku_main_with_options, OkuOptions};
 
 use oku_core::engine::events::{Message, OkuEvent};
-use oku_core::user::components::component::{Component, UpdateResult};
+use oku_core::user::components::component::{Component, ComponentId, UpdateResult};
 use oku_core::user::elements::element::Element;
 use oku_core::user::elements::style::FlexDirection;
 
@@ -17,7 +17,7 @@ pub struct Accordion {
 }
 
 impl Component for Accordion {
-    fn view(state: &Self, _props: Option<Props>, _children: Vec<ComponentSpecification>, id: u64) -> ComponentSpecification {
+    fn view(state: &Self, _props: Option<Props>, _children: Vec<ComponentSpecification>, id: ComponentId) -> ComponentSpecification {
         let mut accordion_header = Container::new();
         accordion_header.set_id(Some("accordion_header".to_string()));
 
@@ -63,7 +63,7 @@ impl Component for Accordion {
         }
     }
 
-    fn update(state: &mut Self, id: u64, message: Message, source_element: Option<String>) -> UpdateResult {
+    fn update(state: &mut Self, id: ComponentId, message: Message, source_element: Option<String>) -> UpdateResult {
         if source_element.as_deref() != Some("accordion_header") {
             return UpdateResult::default();
         }
