@@ -1,5 +1,4 @@
 use oku::user::components::component::ComponentSpecification;
-use oku::user::components::component::UpdateFn;
 use oku::user::components::props::Props;
 use oku::user::elements::container::Container;
 use oku::user::elements::text::Text;
@@ -8,7 +7,7 @@ use oku_core::engine::events::Message;
 use oku::RendererType::Wgpu;
 use oku::{oku_main_with_options, OkuOptions};
 use oku_core::engine::events::OkuEvent;
-use oku_core::user::components::component::{Component, UpdateResult};
+use oku_core::user::components::component::{Component, ComponentId, UpdateResult};
 use oku_core::user::elements::element::Element;
 
 #[derive(Default, Copy, Clone)]
@@ -21,7 +20,7 @@ impl Component for Counter {
         state: &Self,
         _props: Option<Props>,
         _children: Vec<ComponentSpecification>,
-        id: u64,
+        id: ComponentId,
     ) -> ComponentSpecification {
         let mut button = Container::new();
         button.set_id(Some("increment".to_string()));
@@ -55,7 +54,7 @@ impl Component for Counter {
         }
     }
 
-    fn update(state: &mut Self, id: u64, message: Message, source_element: Option<String>) -> UpdateResult {
+    fn update(state: &mut Self, id: ComponentId, message: Message, source_element: Option<String>) -> UpdateResult {
         println!("WORKING...");
         if source_element.as_deref() != Some("increment") {
             return UpdateResult::default();

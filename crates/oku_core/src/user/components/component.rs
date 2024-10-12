@@ -2,16 +2,13 @@ use crate::user::components::props::Props;
 use crate::user::elements::element::Element;
 use crate::engine::events::Message;
 use std::any::{Any, TypeId};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
 use crate::PinnedFutureAny;
 
 pub type ViewFn = fn(
-    data: &(dyn Any + Send),
+    data: &GenericUserState,
     props: Option<Props>,
     children: Vec<ComponentSpecification>,
-    id: u64,
+    id: ComponentId,
 ) -> ComponentSpecification;
 
 
@@ -30,11 +27,12 @@ impl UpdateResult {
    }
 }
 
-pub type UpdateFn = fn(state: &mut (dyn Any + Send), id: u64, message: Message, source_element_id: Option<String>) -> UpdateResult;
+pub type UpdateFn = fn(state: &mut GenericUserState, id: ComponentId, message: Message, source_element_id: Option<String>) -> UpdateResult;
+pub type ComponentId = u64;
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
-    ComponentSpec(fn() -> Box<dyn Any + Send>, ViewFn, UpdateFn, String, TypeId),
+    ComponentSpec(fn() -> Box<GenericUserState>, ViewFn, UpdateFn, String, TypeId),
     Element(Box<dyn Element>),
 }
 
@@ -70,6 +68,8 @@ macro_rules! component {
     };
 }
 
+pub type GenericUserState = dyn Any + Send;
+
 pub trait Component
 where
     Self: 'static + Default + Send,
@@ -78,29 +78,29 @@ where
         state: &Self,
         _props: Option<Props>,
         _children: Vec<ComponentSpecification>,
-        id: u64,
+        id: ComponentId,
     ) -> ComponentSpecification;
 
     fn generic_view(
-        state: &(dyn Any + Send),
+        state: &GenericUserState,
         props: Option<Props>,
         children: Vec<ComponentSpecification>,
-        id: u64,
+        id: ComponentId,
     ) -> ComponentSpecification {
         let casted_state: &Self = state.downcast_ref::<Self>().unwrap();
 
         Self::view(casted_state, props, children, id)
     }
 
-    fn default_state() -> Box<dyn Any + Send> {
+    fn default_state() -> Box<GenericUserState> {
         Box::<Self>::default()
     }
 
-    fn update(state: &mut Self, id: u64, message: Message, source_element: Option<String>) -> UpdateResult;
+    fn update(state: &mut Self, id: ComponentId, message: Message, source_element: Option<String>) -> UpdateResult;
 
     fn generic_update(
-        state: &mut (dyn Any + Send),
-        id: u64,
+        state: &mut GenericUserState,
+        id: ComponentId,
         message: Message,
         source_element: Option<String>,
     ) -> UpdateResult {

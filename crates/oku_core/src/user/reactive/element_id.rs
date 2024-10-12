@@ -1,13 +1,15 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
+use crate::user::components::component::GenericUserState;
+
 static ATOMIC_ELEMENT_ID: AtomicU64 = AtomicU64::new(0);
 
 pub fn get_current_element_id_counter() -> u64 {
     ATOMIC_ELEMENT_ID.load(Ordering::SeqCst)
 }
 
-pub fn create_unique_element_id(user_state: &mut HashMap<u64, Box<dyn Any + Send>>, default: Box<dyn Any + Send>) -> u64 {
+pub fn create_unique_element_id(user_state: &mut HashMap<u64, Box<dyn Any + Send>>, default: Box<GenericUserState>) -> u64 {
     let id = get_current_element_id_counter();
 
     ATOMIC_ELEMENT_ID.fetch_add(1, Ordering::SeqCst);

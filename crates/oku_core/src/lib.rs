@@ -5,7 +5,7 @@ mod platform;
 #[cfg(test)]
 mod tests;
 
-use crate::user::components::component::{ComponentSpecification, UpdateFn, UpdateResult};
+use crate::user::components::component::{ComponentId, ComponentSpecification, GenericUserState, UpdateFn, UpdateResult};
 use cosmic_text::{FontSystem, SwashCache};
 use std::any::Any;
 use std::collections::{HashMap, VecDeque};
@@ -57,7 +57,7 @@ struct App {
     component_tree: Option<ComponentTreeNode>,
     mouse_position: (f32, f32),
     update_queue: VecDeque<UpdateQueueEntry>,
-    user_state: HashMap<u64, Box<dyn Any + Send>>
+    user_state: HashMap<ComponentId, Box<GenericUserState>>
 }
 
 pub struct RenderContext {
@@ -361,7 +361,7 @@ async fn async_main(
                     let source_component = message.1;
                     let source_element = message.2;
                     let message = message.3;
-                    let state = app.user_state.get_mut(&source_component).unwrap();
+                    let state = app.user_state.get_mut(&source_component).unwrap().as_mut();
                     update_fn(state, source_component, Message::UserMessage(message), source_element);
                     app.window.as_ref().unwrap().request_redraw();
                 }
@@ -412,7 +412,7 @@ async fn on_mouse_input(
             return;
         };
 
-        app.component_tree.as_ref().unwrap().print_tree();
+        //app.component_tree.as_ref().unwrap().print_tree();
         let fiber: FiberNode = FiberNode {
             element: Some(current_element_tree.as_ref()),
             component: Some(app.component_tree.as_ref().unwrap()),
@@ -424,17 +424,17 @@ async fn on_mouse_input(
         for fiber_node in fiber.level_order_iter().collect::<Vec<FiberNode>>().iter().rev() {
             if let Some(_element) = fiber_node.element {
                 let in_bounds = _element.in_bounds(app.mouse_position.0, app.mouse_position.1);
-                println!(
-                    "Fiber Node - Element: {} - {} - in bounds: {}",
-                    _element.name(),
-                    _element.component_id(),
-                    in_bounds
-                );
+                //println!(
+                //    "Fiber Node - Element: {} - {} - in bounds: {}",
+                //    _element.name(),
+                //    _element.component_id(),
+                //    in_bounds
+                //);
             }
             if let Some(_component) = fiber_node.component {
-                println!("Fiber Node - Component: {} - {}", _component.tag, _component.id);
+                //println!("Fiber Node - Component: {} - {}", _component.tag, _component.id);
             }
-            println!("Event status: {:?}", event_status);
+            //println!("Event status: {:?}", event_status);
             if let Some(element) = fiber_node.element {
                 let in_bounds = element.in_bounds(app.mouse_position.0, app.mouse_position.1);
                 if in_bounds {

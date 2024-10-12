@@ -1,5 +1,5 @@
 use std::any::Any;
-use crate::user::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn, UpdateResult};
+use crate::user::components::component::{ComponentId, ComponentOrElement, ComponentSpecification, GenericUserState, UpdateFn, UpdateResult};
 use crate::user::elements::element::Element;
 use crate::user::reactive::element_id::create_unique_element_id;
 use std::cell::RefCell;
@@ -14,9 +14,9 @@ pub struct ComponentTreeNode {
     pub tag: String,
     pub update: UpdateFn,
     pub children: Vec<ComponentTreeNode>,
-    pub children_keys: HashMap<String, u64>,
-    pub id: u64,
-    pub(crate) parent_id: Option<u64>,
+    pub children_keys: HashMap<String, ComponentId>,
+    pub id: ComponentId,
+    pub(crate) parent_id: Option<ComponentId>,
 }
 
 #[derive(Clone)]
@@ -49,7 +49,7 @@ impl ComponentTreeNode {
         }
     }
 }
-fn dummy_update(state: &mut (dyn Any + Send), id: u64, message: Message, source_element_id: Option<String>) -> UpdateResult {
+fn dummy_update(state: &mut GenericUserState, id: ComponentId, message: Message, source_element_id: Option<String>) -> UpdateResult {
     UpdateResult {
         propagate: true,
         result: None,
@@ -62,9 +62,9 @@ pub(crate) fn create_trees_from_render_specification(
     component_specification: ComponentSpecification,
     mut root_element: Box<dyn Element>,
     old_component_tree: Option<&ComponentTreeNode>,
-    user_state: &mut HashMap<u64, Box<dyn Any + Send>>
+    user_state: &mut HashMap<ComponentId, Box<GenericUserState>>
 ) -> (ComponentTreeNode, Box<dyn Element>) {
-    println!("-----------------------------------------");
+    //println!("-----------------------------------------");
     unsafe {
         let mut component_tree = ComponentTreeNode {
             is_element: false,
@@ -118,7 +118,7 @@ pub(crate) fn create_trees_from_render_specification(
                     // Store the new tag, i.e. the element's name.
                     let new_tag = element.name().to_string();
 
-                    let default: Box<dyn Any + Send> = Box::new(());
+                    let default: Box<GenericUserState> = Box::new(());
                     let id = if let Some(old_tag) = old_tag {
                         if new_tag == old_tag {
                             (*tree_node.old_component_node.unwrap()).id
@@ -193,7 +193,7 @@ pub(crate) fn create_trees_from_render_specification(
                 ComponentOrElement::ComponentSpec(default, component_spec, update_fn, new_tag, _type_id) => {
                     let children_keys = (*parent_component_ptr).children_keys.clone();
 
-                    let id: u64 = if key.is_some() && children_keys.contains_key(&key.clone().unwrap()) {
+                    let id: ComponentId = if key.is_some() && children_keys.contains_key(&key.clone().unwrap()) {
                         *(children_keys.get(&key.clone().unwrap()).unwrap())
                     } else if let Some(old_tag) = old_tag {
                         if *new_tag == old_tag {
