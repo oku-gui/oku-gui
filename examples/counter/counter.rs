@@ -55,7 +55,6 @@ impl Component for Counter {
     }
 
     fn update(state: &mut Self, id: ComponentId, message: Message, source_element: Option<String>) -> UpdateResult {
-        println!("WORKING...");
         if source_element.as_deref() != Some("increment") {
             return UpdateResult::default();
         }
@@ -70,7 +69,7 @@ impl Component for Counter {
 
 fn main() {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE) // Set the maximum log level you want to capture
+        .with_max_level(tracing::Level::TRACE)
         .init();
 
     oku_main_with_options(
