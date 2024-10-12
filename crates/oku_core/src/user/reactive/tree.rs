@@ -1,17 +1,18 @@
 use std::any::Any;
-use crate::user::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn};
+use crate::user::components::component::{ComponentOrElement, ComponentSpecification, UpdateFn, UpdateResult};
 use crate::user::elements::element::Element;
 use crate::user::reactive::element_id::create_unique_element_id;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::engine::events::Message;
 
 #[derive(Clone)]
 pub struct ComponentTreeNode {
     pub is_element: bool,
     pub key: Option<String>,
     pub tag: String,
-    pub update: Option<UpdateFn>,
+    pub update: UpdateFn,
     pub children: Vec<ComponentTreeNode>,
     pub children_keys: HashMap<String, u64>,
     pub id: u64,
@@ -48,6 +49,12 @@ impl ComponentTreeNode {
         }
     }
 }
+fn dummy_update(state: &mut (dyn Any + Send), id: u64, message: Message, source_element_id: Option<String>) -> UpdateResult {
+    UpdateResult {
+        propagate: true,
+        result: None,
+    }
+}
 
 /// Creates a new Component tree and Element tree from a ComponentSpecification.
 /// The ids of the Component tree are stable across renders.
@@ -63,7 +70,7 @@ pub(crate) fn create_trees_from_render_specification(
             is_element: false,
             key: None,
             tag: "root".to_string(),
-            update: None,
+            update: dummy_update,
             children: vec![],
             children_keys: HashMap::new(),
             id: 0,
@@ -133,7 +140,7 @@ pub(crate) fn create_trees_from_render_specification(
                         is_element: true,
                         key,
                         tag: new_tag,
-                        update: None,
+                        update: dummy_update,
                         children: vec![],
                         children_keys: HashMap::new(),
                         id,
@@ -183,7 +190,7 @@ pub(crate) fn create_trees_from_render_specification(
 
                     to_visit.extend(new_to_visits.into_iter().rev());
                 }
-                ComponentOrElement::ComponentSpec(default, component_spec, new_tag, _type_id) => {
+                ComponentOrElement::ComponentSpec(default, component_spec, update_fn, new_tag, _type_id) => {
                     let children_keys = (*parent_component_ptr).children_keys.clone();
 
                     let id: u64 = if key.is_some() && children_keys.contains_key(&key.clone().unwrap()) {
@@ -210,7 +217,7 @@ pub(crate) fn create_trees_from_render_specification(
                         is_element: false,
                         key: key.clone(),
                         tag: (*new_tag).clone(),
-                        update: new_component.1,
+                        update: *update_fn,
                         children: vec![],
                         children_keys: HashMap::new(),
                         id,
@@ -234,7 +241,7 @@ pub(crate) fn create_trees_from_render_specification(
 
                     // Add the computed component spec to the to visit list.
                     to_visit.push(TreeVisitorNode {
-                        component_specification: Rc::new(RefCell::new(new_component.0)),
+                        component_specification: Rc::new(RefCell::new(new_component)),
                         parent_element_ptr,
                         parent_component_node: new_component_pointer,
                         old_component_node: old_component_tree,

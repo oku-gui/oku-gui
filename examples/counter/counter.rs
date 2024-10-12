@@ -22,14 +22,14 @@ impl Component for Counter {
         _props: Option<Props>,
         _children: Vec<ComponentSpecification>,
         id: u64,
-    ) -> (ComponentSpecification, Option<UpdateFn>) {
+    ) -> ComponentSpecification {
         let mut button = Container::new();
         button.set_id(Some("increment".to_string()));
 
         let mut button_label = Text::new("increment");
         button_label.set_id(Some("increment".to_string()));
 
-        let root = ComponentSpecification {
+        ComponentSpecification {
             component: Container::new().into(),
             key: Some("counter container".to_string()),
             props: None,
@@ -52,11 +52,11 @@ impl Component for Counter {
                     }],
                 },
             ],
-        };
-        (root, Some(Self::generic_update))
+        }
     }
 
     fn update(state: &mut Self, id: u64, message: Message, source_element: Option<String>) -> UpdateResult {
+        println!("WORKING...");
         if source_element.as_deref() != Some("increment") {
             return UpdateResult::default();
         }

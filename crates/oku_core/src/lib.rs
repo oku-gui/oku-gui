@@ -302,7 +302,8 @@ async fn async_main(
 ) {
     let mut user_state = HashMap::new();
     
-    //user_state.insert(0, Box::new(()));
+    let dummy_root_value: Box<(dyn Any + Send + 'static)> = Box::new(0);
+    user_state.insert(0, dummy_root_value);
     
     let mut app = Box::new(App {
         app: application,
@@ -456,26 +457,24 @@ async fn on_mouse_input(
             let mut to_visit = Some(target_component);
 
             while let Some(node) = to_visit {
-                if let Some(update_fn) = node.update {
-                    let event = OkuEvent::Click(ClickMessage {
-                        mouse_input: MouseInput {
-                            device_id: _mouse_input.device_id,
-                            state: _mouse_input.state,
-                            button: _mouse_input.button,
-                        },
-                        x: app.mouse_position.0 as f64,
-                        y: app.mouse_position.1 as f64,
-                    });
-                    
-                    let state = app.user_state.get_mut(&node.id).unwrap().as_mut();
-                    let res = update_fn(state, node.id, Message::OkuMessage(event), target_element_id.clone());
-                    let propagate = res.propagate;
-                    if res.result.is_some() {
-                        app.update_queue.push_back(UpdateQueueEntry::new(node.id, target_element_id.clone(), update_fn, res));
-                    }
-                    if propagate {
-                        break;
-                    }
+                let event = OkuEvent::Click(ClickMessage {
+                    mouse_input: MouseInput {
+                        device_id: _mouse_input.device_id,
+                        state: _mouse_input.state,
+                        button: _mouse_input.button,
+                    },
+                    x: app.mouse_position.0 as f64,
+                    y: app.mouse_position.1 as f64,
+                });
+
+                let state = app.user_state.get_mut(&node.id).unwrap().as_mut();
+                let res = (node.update)(state, node.id, Message::OkuMessage(event), target_element_id.clone());
+                let propagate = res.propagate;
+                if res.result.is_some() {
+                    app.update_queue.push_back(UpdateQueueEntry::new(node.id, target_element_id.clone(), node.update, res));
+                }
+                if !propagate {
+                    break;
                 }
 
                 if node.parent_id.is_none() {

@@ -12,7 +12,7 @@ pub type ViewFn = fn(
     props: Option<Props>,
     children: Vec<ComponentSpecification>,
     id: u64,
-) -> (ComponentSpecification, Option<UpdateFn>);
+) -> ComponentSpecification;
 
 
 #[derive(Default)]
@@ -34,7 +34,7 @@ pub type UpdateFn = fn(state: &mut (dyn Any + Send), id: u64, message: Message, 
 
 #[derive(Clone)]
 pub enum ComponentOrElement {
-    ComponentSpec(fn() -> Box<dyn Any + Send>, ViewFn, String, TypeId),
+    ComponentSpec(fn() -> Box<dyn Any + Send>, ViewFn, UpdateFn, String, TypeId),
     Element(Box<dyn Element>),
 }
 
@@ -79,21 +79,21 @@ where
         _props: Option<Props>,
         _children: Vec<ComponentSpecification>,
         id: u64,
-    ) -> (ComponentSpecification, Option<UpdateFn>);
+    ) -> ComponentSpecification;
 
     fn generic_view(
         state: &(dyn Any + Send),
         props: Option<Props>,
         children: Vec<ComponentSpecification>,
         id: u64,
-    ) -> (ComponentSpecification, Option<UpdateFn>) {
+    ) -> ComponentSpecification {
         let casted_state: &Self = state.downcast_ref::<Self>().unwrap();
 
         Self::view(casted_state, props, children, id)
     }
 
     fn default_state() -> Box<dyn Any + Send> {
-        Box::new(Self::default())
+        Box::<Self>::default()
     }
 
     fn update(state: &mut Self, id: u64, message: Message, source_element: Option<String>) -> UpdateResult;
@@ -113,6 +113,7 @@ where
         ComponentOrElement::ComponentSpec(
             Self::default_state,
             Self::generic_view,
+            Self::generic_update,
             std::any::type_name_of_val(&Self::generic_view).to_string(),
             Self::generic_view.type_id(),
         )
