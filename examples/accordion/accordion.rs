@@ -64,7 +64,6 @@ impl Component for Accordion {
     }
 
     fn update(state: &mut Self, id: u64, message: Message, source_element: Option<String>) -> UpdateResult {
-        println!("{:?}", source_element.clone().as_deref());
         if source_element.as_deref() != Some("accordion_header") {
             return UpdateResult::default();
         }

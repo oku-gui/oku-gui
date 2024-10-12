@@ -104,7 +104,8 @@ where
         message: Message,
         source_element: Option<String>,
     ) -> UpdateResult {
-        let casted_state: &mut Self = state.downcast_mut::<Self>().unwrap();
+        let mut default_value = Self::default();
+        let casted_state: &mut Self = state.downcast_mut::<Self>().unwrap_or(&mut default_value);
 
         Self::update(casted_state, id, message, source_element)
     }
