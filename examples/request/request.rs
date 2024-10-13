@@ -13,6 +13,7 @@ use oku_core::user::elements::element::Element;
 use oku_core::user::elements::image::Image;
 use oku_core::PinnedFutureAny;
 use std::any::Any;
+use oku::platform::resource_manager::ResourceIdentifier;
 
 #[derive(Default, Clone)]
 pub struct Request {
@@ -38,7 +39,7 @@ impl Component for Request {
             props: None,
             children: vec![
                 ComponentSpecification {
-                    component: Image::new("a.jpg").into(),
+                    component: Image::new(ResourceIdentifier::File("a.jpg".to_string())).into(),
                     key: Some("counter text".to_string()),
                     props: None,
                     children: vec![],

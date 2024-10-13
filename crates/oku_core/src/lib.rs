@@ -1,7 +1,7 @@
 pub mod user;
 
 pub mod engine;
-mod platform;
+pub mod platform;
 #[cfg(test)]
 mod tests;
 

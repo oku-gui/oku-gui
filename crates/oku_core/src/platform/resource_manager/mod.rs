@@ -8,7 +8,7 @@ use std::collections::{HashMap, VecDeque};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc};
-use crate::platform::resource_manager::identifier::ResourceIdentifier;
+pub use crate::platform::resource_manager::identifier::ResourceIdentifier;
 use crate::platform::resource_manager::resource::Resource;
 
 pub type ResourceFuture = Pin<Box<dyn Future<Output = Box<dyn Any + Send + Sync>> + Send + Sync>>;

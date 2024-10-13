@@ -6,17 +6,18 @@ use crate::engine::renderer::renderer::{Rectangle, Renderer};
 use crate::RenderContext;
 use cosmic_text::FontSystem;
 use taffy::{NodeId, TaffyTree};
+use crate::platform::resource_manager::ResourceIdentifier;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct Image {
-    image_path: String,
+    resource_identifier: ResourceIdentifier,
     pub common_element_data: CommonElementData,
 }
 
 impl Image {
-    pub fn new(image_path: &str) -> Image {
+    pub fn new(resource_identifier: ResourceIdentifier) -> Image {
         Image {
-            image_path: image_path.to_string(),
+            resource_identifier,
             common_element_data: Default::default(),
         }
     }
@@ -36,10 +37,10 @@ impl Element for Image {
     }
 
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, _render_context: &mut RenderContext) {
-        renderer.draw_image(
-            Rectangle::new(self.common_element_data.computed_x, self.common_element_data.computed_y, self.common_element_data.computed_width, self.common_element_data.computed_height),
-            self.image_path.as_str(),
-        );
+        //renderer.draw_image(
+        //    Rectangle::new(self.common_element_data.computed_x, self.common_element_data.computed_y, self.common_element_data.computed_width, self.common_element_data.computed_height),
+        //    self.image_path.as_str(),
+        //);
     }
 
     fn debug_draw(&mut self, _render_context: &mut RenderContext) {
