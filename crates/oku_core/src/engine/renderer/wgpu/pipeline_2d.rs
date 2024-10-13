@@ -7,7 +7,6 @@ use crate::engine::renderer::wgpu::context::Context;
 use crate::engine::renderer::wgpu::texture::Texture;
 use crate::engine::renderer::wgpu::uniform::GlobalUniform;
 use crate::engine::renderer::wgpu::vertex::Vertex;
-use crate::platform::resource_manager::RESOURCE_MANAGER;
 
 fn bind_group_from_2d_texture(
     device: &wgpu::Device,

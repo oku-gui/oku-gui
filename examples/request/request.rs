@@ -6,7 +6,7 @@ use oku_core::engine::events::Message;
 
 use bytes::Bytes;
 use oku::RendererType::Wgpu;
-use oku::{component, oku_main_with_options, OkuOptions};
+use oku::{oku_main_with_options, OkuOptions};
 use oku_core::engine::events::OkuEvent;
 use oku_core::user::components::component::{Component, ComponentId, UpdateResult};
 use oku_core::user::elements::element::Element;

@@ -45,6 +45,7 @@ const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 
 pub use tokio::spawn;
 pub use tokio::join;
+use crate::platform::resource_manager::ResourceManager;
 
 pub type PinnedFutureAny = Pin<Box<dyn Future<Output = Box<dyn Any + Send>> + Send>>;
 
@@ -57,7 +58,8 @@ struct App {
     component_tree: Option<ComponentTreeNode>,
     mouse_position: (f32, f32),
     update_queue: VecDeque<UpdateQueueEntry>,
-    user_state: HashMap<ComponentId, Box<GenericUserState>>
+    user_state: HashMap<ComponentId, Box<GenericUserState>>,
+    resource_manager: ResourceManager
 }
 
 pub struct RenderContext {
@@ -315,6 +317,7 @@ async fn async_main(
         mouse_position: (0.0, 0.0),
         update_queue: VecDeque::new(),
         user_state,
+        resource_manager: ResourceManager::new(),
     });
 
     info!("starting main event loop");
