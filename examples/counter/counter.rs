@@ -4,12 +4,12 @@ use oku::user::elements::container::Container;
 use oku::user::elements::text::Text;
 use oku_core::engine::events::{ButtonSource, ElementState, Message, MouseButton};
 
-use oku::RendererType::Wgpu;
-use oku::{oku_main_with_options, OkuOptions};
-use oku_core::engine::events::OkuEvent;
+use oku::oku_main_with_options;
 use oku_core::engine::events::OkuEvent::PointerButtonEvent;
 use oku_core::user::components::component::{Component, ComponentId, UpdateResult};
 use oku_core::user::elements::element::Element;
+use oku_core::OkuOptions;
+use oku_core::RendererType::Wgpu;
 
 #[derive(Default, Copy, Clone)]
 pub struct Counter {
@@ -55,14 +55,16 @@ impl Component for Counter {
         }
     }
 
-    fn update(state: &mut Self, id: ComponentId, message: Message, source_element: Option<String>) -> UpdateResult {
+    fn update(state: &mut Self, _id: ComponentId, message: Message, source_element: Option<String>) -> UpdateResult {
         if source_element.as_deref() != Some("increment") {
             return UpdateResult::default();
         }
 
         if let Message::OkuMessage(PointerButtonEvent(pointer_button)) = message {
-            if pointer_button.button == ButtonSource::Mouse(MouseButton::Left)  && pointer_button.state == ElementState::Pressed {
-                state.count += 1   
+            if pointer_button.button == ButtonSource::Mouse(MouseButton::Left)
+                && pointer_button.state == ElementState::Pressed
+            {
+                state.count += 1
             }
         };
 
@@ -71,9 +73,7 @@ impl Component for Counter {
 }
 
 fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .init();
+    tracing_subscriber::fmt().with_max_level(tracing::Level::TRACE).init();
 
     oku_main_with_options(
         ComponentSpecification {

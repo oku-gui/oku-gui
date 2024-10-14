@@ -1,11 +1,16 @@
 pub mod user;
 
 pub mod engine;
+mod options;
 pub mod platform;
 #[cfg(test)]
 mod tests;
 
-use crate::user::components::component::{ComponentId, ComponentSpecification, GenericUserState, UpdateFn, UpdateResult};
+pub use options::OkuOptions;
+
+use crate::user::components::component::{
+    ComponentId, ComponentSpecification, GenericUserState, UpdateFn, UpdateResult,
+};
 use cosmic_text::{FontSystem, SwashCache};
 use std::any::Any;
 use std::collections::{HashMap, VecDeque};
@@ -28,13 +33,13 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId};
 
+use crate::engine::events::update_queue_entry::UpdateQueueEntry;
 use crate::platform::runtimes::native::create_native_runtime;
 use crate::user::elements::container::Container;
 use crate::user::elements::element::Element;
 use crate::user::elements::layout_context::{measure_content, LayoutContext};
 use crate::user::elements::style::Unit;
 use crate::user::reactive::tree::{create_trees_from_render_specification, ComponentTreeNode};
-use crate::engine::events::update_queue_entry::UpdateQueueEntry;
 use engine::events::{Message, OkuEvent};
 use engine::renderer::color::Color;
 use engine::renderer::renderer::Renderer;
@@ -43,10 +48,12 @@ use engine::renderer::wgpu::WgpuRenderer;
 
 const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 
-pub use tokio::spawn;
-pub use tokio::join;
 use crate::engine::events::{PointerButton, PointerMoved};
+pub use crate::options::RendererType;
 use crate::platform::resource_manager::ResourceManager;
+pub use tokio::join;
+pub use tokio::spawn;
+use crate::user::elements::image::Image;
 
 pub type PinnedFutureAny = Pin<Box<dyn Future<Output = Box<dyn Any + Send>> + Send>>;
 
@@ -60,7 +67,7 @@ struct App {
     mouse_position: (f32, f32),
     update_queue: VecDeque<UpdateQueueEntry>,
     user_state: HashMap<ComponentId, Box<GenericUserState>>,
-    resource_manager: ResourceManager
+    resource_manager: ResourceManager,
 }
 
 pub struct RenderContext {
@@ -80,12 +87,6 @@ struct OkuState {
     oku_options: OkuOptions,
 }
 
-#[derive(Copy, Clone, Debug)]
-struct MouseMoved {
-    device_id: DeviceId,
-    position: (f64, f64),
-}
-
 enum InternalMessage {
     RequestRedraw,
     Close,
@@ -95,28 +96,7 @@ enum InternalMessage {
     PointerButton(PointerButton),
     PointerMoved(PointerMoved),
     ProcessUserEvents,
-    GotUserMessage((UpdateFn, u64, Option<String>, Box<dyn Any + Send>))
-}
-
-#[derive(Default)]
-pub struct OkuOptions {
-    pub renderer: RendererType,
-}
-
-#[derive(Default, Copy, Clone, Debug)]
-pub enum RendererType {
-    Software,
-    #[default]
-    Wgpu,
-}
-
-impl Display for RendererType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RendererType::Software => write!(f, "software(tiny-skia)"),
-            RendererType::Wgpu => write!(f, "wgpu"),
-        }
-    }
+    GotUserMessage((UpdateFn, u64, Option<String>, Box<dyn Any + Send>)),
 }
 
 pub fn oku_main(application: ComponentSpecification) {
@@ -200,12 +180,9 @@ impl ApplicationHandler for OkuState {
             WindowEvent::PointerMoved {
                 device_id,
                 position,
-                source
+                source,
             } => {
-                self.send_message(
-                    InternalMessage::PointerMoved(PointerMoved::new(device_id, position, source)),
-                    true,
-                );
+                self.send_message(InternalMessage::PointerMoved(PointerMoved::new(device_id, position, source)), true);
             }
             WindowEvent::SurfaceResized(new_size) => {
                 self.send_message(InternalMessage::Resize(new_size), true);
@@ -283,13 +260,13 @@ async fn async_main(
     application: ComponentSpecification,
     mut rx: mpsc::Receiver<(u64, bool, InternalMessage)>,
     tx: mpsc::Sender<(u64, InternalMessage)>,
-    app_tx: mpsc::Sender<(u64, bool, InternalMessage)>
+    app_tx: mpsc::Sender<(u64, bool, InternalMessage)>,
 ) {
     let mut user_state = HashMap::new();
-    
+
     let dummy_root_value: Box<(dyn Any + Send + 'static)> = Box::new(0);
     user_state.insert(0, dummy_root_value);
-    
+
     let mut app = Box::new(App {
         app: application,
         window: None,
@@ -332,16 +309,27 @@ async fn async_main(
                     if app.update_queue.is_empty() {
                         continue;
                     }
-                    
+
                     for event in app.update_queue.drain(..) {
                         let tx = app_tx.clone();
                         tokio::spawn(async move {
                             let update_result = event.update_result.result.unwrap();
                             let res = update_result.await;
-                            tx.send((0, false, InternalMessage::GotUserMessage((event.update_function, event.source_component, event.source_element, res)))).await.expect("send failed");
+                            tx.send((
+                                0,
+                                false,
+                                InternalMessage::GotUserMessage((
+                                    event.update_function,
+                                    event.source_component,
+                                    event.source_element,
+                                    res,
+                                )),
+                            ))
+                            .await
+                            .expect("send failed");
                         });
                     }
-                },
+                }
                 InternalMessage::GotUserMessage(message) => {
                     let update_fn = message.0;
                     let source_component = message.1;
@@ -449,7 +437,12 @@ async fn on_pointer_button(
                 let res = (node.update)(state, node.id, Message::OkuMessage(event), target_element_id.clone());
                 let propagate = res.propagate;
                 if res.result.is_some() {
-                    app.update_queue.push_back(UpdateQueueEntry::new(node.id, target_element_id.clone(), node.update, res));
+                    app.update_queue.push_back(UpdateQueueEntry::new(
+                        node.id,
+                        target_element_id.clone(),
+                        node.update,
+                        res,
+                    ));
                 }
                 if !propagate {
                     break;
@@ -500,6 +493,8 @@ async fn on_resume(
     send_response(id, wait_for_response, &tx).await;
 }
 
+async fn scan_view_for_resources(root: &dyn Element) {}
+
 async fn on_request_redraw(tx: &Sender<(u64, InternalMessage)>, app: &mut Box<App>, id: u64, wait_for_response: bool) {
     let renderer = app.renderer.as_mut().unwrap();
 
@@ -507,8 +502,14 @@ async fn on_request_redraw(tx: &Sender<(u64, InternalMessage)>, app: &mut Box<Ap
 
     let window_element = Container::new().into();
     let old_component_tree = app.component_tree.as_ref();
-    let new_tree = create_trees_from_render_specification(app.app.clone(), window_element, old_component_tree, &mut app.user_state);
+    let new_tree = create_trees_from_render_specification(
+        app.app.clone(),
+        window_element,
+        old_component_tree,
+        &mut app.user_state,
+    );
     app.component_tree = Some(new_tree.0);
+    
 
     let mut root = new_tree.1;
 
@@ -527,10 +528,35 @@ async fn on_request_redraw(tx: &Sender<(u64, InternalMessage)>, app: &mut Box<Ap
         root.style_mut().height = Unit::Px(renderer.surface_height());
     }
 
-    root =
-        layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut root);
+    root = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut root);
     root.draw(renderer, app.renderer_context.as_mut().unwrap());
     app.element_tree = Some(root);
+    
+    
+    //
+    {
+        let fiber: FiberNode = FiberNode {
+            element: Some(app.element_tree.as_deref().unwrap()),
+            component: Some(app.component_tree.as_ref().unwrap()),
+        };
+
+        for fiber_node in fiber.level_order_iter().collect::<Vec<FiberNode>>().iter().rev() {
+            if let Some(element) = fiber_node.element {
+                if element.name() == Image::name() {
+                    let x = element.as_any().downcast_ref::<Image>().unwrap().resource_identifier.clone();
+                    app.resource_manager.add(x);
+                    /*
+                    unsafe {
+                        let image = element;
+                        let resource_identifier = 
+                    }
+                    app.resource_manager.add((element as &Image).resource_identifier.clone());*/
+                }
+            }
+        }
+    }
+    
+    //
 
     renderer.submit();
     send_response(id, wait_for_response, &tx).await;

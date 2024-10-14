@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::user::elements::element::{CommonElementData, Element};
 use crate::user::elements::layout_context::LayoutContext;
 use crate::user::elements::style::Style;
@@ -50,4 +51,8 @@ impl Element for Empty {
     }
 
     fn finalize_layout(&mut self, _taffy_tree: &mut TaffyTree<LayoutContext>, _root_node: NodeId, _x: f32, _y: f32) {}
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }

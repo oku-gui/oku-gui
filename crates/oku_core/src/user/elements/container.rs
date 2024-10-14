@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::user::elements::element::{CommonElementData, Element};
 use crate::user::elements::layout_context::LayoutContext;
 use crate::user::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit};
@@ -74,6 +75,10 @@ impl Element for Container {
             let child2 = taffy_tree.child_at_index(root_node, index).unwrap();
             child.finalize_layout(taffy_tree, child2, self.common_element_data.computed_x, self.common_element_data.computed_y);
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

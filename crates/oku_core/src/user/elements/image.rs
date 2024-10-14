@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::user::elements::element::{CommonElementData, Element};
 use crate::user::elements::layout_context::{ImageContext, LayoutContext};
 use crate::user::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Unit, Weight};
@@ -10,7 +11,7 @@ use crate::platform::resource_manager::ResourceIdentifier;
 
 #[derive(Clone, Debug)]
 pub struct Image {
-    resource_identifier: ResourceIdentifier,
+    pub(crate) resource_identifier: ResourceIdentifier,
     pub common_element_data: CommonElementData,
 }
 
@@ -20,6 +21,10 @@ impl Image {
             resource_identifier,
             common_element_data: Default::default(),
         }
+    }
+    
+    pub fn name() -> &'static str {
+        "Image"
     }
 }
 
@@ -70,6 +75,10 @@ impl Element for Image {
         self.common_element_data.computed_height = result.size.height;
 
         self.common_element_data.computed_padding = [result.padding.top, result.padding.right, result.padding.bottom, result.padding.left];
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

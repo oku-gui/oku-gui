@@ -7,9 +7,9 @@ pub struct ImageResource {
 }
 
 impl ImageResource {
-    fn new(path: ResourceIdentifier, expiration_time: Option<DateTime<Utc>>) -> Self {
+    pub(crate) fn new(resource: &ResourceIdentifier, expiration_time: Option<DateTime<Utc>>) -> Self {
         ImageResource {
-            common_data: ResourceData::new(path, expiration_time),
+            common_data: ResourceData::new(resource.clone(), expiration_time),
         }
     }
 }

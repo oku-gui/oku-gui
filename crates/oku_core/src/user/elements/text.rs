@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::user::elements::element::{CommonElementData, Element};
 use crate::user::elements::layout_context::{CosmicTextContent, LayoutContext};
 use crate::user::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit, Weight};
@@ -118,6 +119,10 @@ impl Element for Text {
         self.common_element_data.computed_height = result.size.height;
 
         self.common_element_data.computed_padding = [result.padding.top, result.padding.right, result.padding.bottom, result.padding.left];
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
