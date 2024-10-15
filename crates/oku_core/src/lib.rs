@@ -532,7 +532,7 @@ async fn on_request_redraw(app: &mut App) {
         root.style_mut().height = Unit::Px(renderer.surface_height());
     }
 
-    root = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), &mut root);
+    layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), root.as_mut());
     root.draw(renderer, app.renderer_context.as_mut().unwrap());
     app.element_tree = Some(root);
     
@@ -543,8 +543,8 @@ fn layout(
     _window_width: f32,
     _window_height: f32,
     render_context: &mut RenderContext,
-    root_element: &mut Box<dyn Element>,
-) -> Box<dyn Element> {
+    root_element: &mut dyn Element,
+) {
     let mut taffy_tree: taffy::TaffyTree<LayoutContext> = taffy::TaffyTree::new();
     let root_node = root_element.compute_layout(&mut taffy_tree, &mut render_context.font_system);
 
@@ -559,6 +559,4 @@ fn layout(
         .unwrap();
 
     root_element.finalize_layout(&mut taffy_tree, root_node, 0.0, 0.0);
-
-    root_element.clone()
 }
