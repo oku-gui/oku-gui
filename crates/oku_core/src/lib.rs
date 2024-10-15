@@ -9,12 +9,11 @@ mod tests;
 pub use options::OkuOptions;
 
 use crate::user::components::component::{
-    ComponentId, ComponentSpecification, GenericUserState, UpdateFn, UpdateResult,
+    ComponentId, ComponentSpecification, GenericUserState,
 };
 use cosmic_text::{FontSystem, SwashCache};
 use std::any::Any;
 use std::collections::{HashMap, VecDeque};
-use std::fmt::Formatter;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -25,7 +24,7 @@ use user::reactive::element_id::reset_unique_element_id;
 use user::reactive::fiber_node::FiberNode;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
-use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, StartCause, WindowEvent};
+use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId};
@@ -510,7 +509,7 @@ async fn on_request_redraw(app: &mut App) {
     );
 
     scan_view_for_resources(new_tree.1.as_ref(), &new_tree.0, app);
-    
+
     app.component_tree = Some(new_tree.0);
     let mut root = new_tree.1;
 
@@ -535,7 +534,7 @@ async fn on_request_redraw(app: &mut App) {
     layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), root.as_mut());
     root.draw(renderer, app.renderer_context.as_mut().unwrap());
     app.element_tree = Some(root);
-    
+
     renderer.submit();
 }
 
