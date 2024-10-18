@@ -61,7 +61,7 @@ impl TextRenderer {
             queue,
             font_system,
             atlas,
-            viewport,
+            &viewport,
             text_areas,
             cache,
             zero_depth,

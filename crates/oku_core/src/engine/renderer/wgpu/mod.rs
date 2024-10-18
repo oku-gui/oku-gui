@@ -10,14 +10,18 @@ use crate::engine::renderer::renderer::{Rectangle, Renderer};
 use glam;
 use image::{GenericImageView, ImageEncoder};
 use std::sync::Arc;
+use cosmic_text::{Buffer, FontSystem};
 use tokio::sync::{RwLock, RwLockReadGuard};
+use wgpu::MultisampleState;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
+use glyphon::{Cache, TextAtlas, TextRenderer, Viewport};
 use crate::engine::renderer::wgpu::camera::Camera;
 use crate::engine::renderer::wgpu::context::{create_surface_config, request_adapter, request_device_and_queue, Context};
 use crate::engine::renderer::wgpu::pipeline_2d::Pipeline2D;
 use crate::engine::renderer::wgpu::texture::Texture;
 use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
+use crate::RenderContext;
 
 pub struct WgpuRenderer<'a> {
     context: Context<'a>,
@@ -45,6 +49,11 @@ impl<'a> WgpuRenderer<'a> {
 
         let resource_manager_copy = resource_manager.clone();
 
+        let cache = Cache::new(&device);
+        let viewport = Viewport::new(&device, &cache);
+        let mut atlas = TextAtlas::new(&device, &queue, &cache, surface_config.format);
+        let text_renderer = TextRenderer::new(&mut atlas, &device, MultisampleState::default(), None);
+        
         let context = Context {
             device,
             queue,
@@ -54,6 +63,11 @@ impl<'a> WgpuRenderer<'a> {
             surface_clear_color: Color::new_from_rgba_u8(255, 255, 255, 255),
             is_srgba_format: false,
             resource_manager: resource_manager_copy.clone(),
+            
+            glyphon_cache: cache,
+            glyphon_viewport: viewport,
+            glyphon_atlas: atlas,
+            glyphon_text_renderer: text_renderer,
         };
 
         let pipeline2d = Pipeline2D::new(&context);
@@ -102,11 +116,16 @@ impl Renderer for WgpuRenderer<'_> {
        self.pipeline2d.draw_rect(rectangle, fill_color);
     }
 
+    fn draw_text(&mut self, text_buffer: Buffer, rectangle: Rectangle, fill_color: Color) {
+        self.pipeline2d.draw_text(text_buffer, rectangle, fill_color);
+
+    }
+
     fn draw_image(&mut self, rectangle: Rectangle, resource_identifier: ResourceIdentifier) {
         self.pipeline2d.draw_image(rectangle, resource_identifier)
     }
 
-    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>) {
-        self.pipeline2d.submit(&mut self.context, resource_manager);
+    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>, render_context: &mut RenderContext) {
+        self.pipeline2d.submit(&mut self.context, resource_manager, render_context);
     }     
 }

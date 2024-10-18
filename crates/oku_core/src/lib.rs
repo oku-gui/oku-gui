@@ -384,7 +384,10 @@ async fn on_resize(
     renderer.resize_surface(new_size.width.max(1) as f32, new_size.height.max(1) as f32);
 
     // On macOS the window needs to be redrawn manually after resizing
-    app.window.as_ref().unwrap().request_redraw();
+    #[cfg(target_os = "macos")]
+    {
+        app.window.as_ref().unwrap().request_redraw();   
+    }
 }
 
 async fn on_pointer_button(
@@ -556,7 +559,7 @@ async fn on_request_redraw(app: &mut App) {
     app.element_tree = Some(root);
 
     let resource_manager = app.resource_manager.read().await;
-    renderer.submit(resource_manager);
+    renderer.submit(resource_manager, &mut app.renderer_context.as_mut().unwrap());
 }
 
 fn layout(

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use wgpu::{CompositeAlphaMode, PresentMode};
+use glyphon::{Cache, TextAtlas, TextRenderer, Viewport};
 use crate::engine::renderer::color::Color;
 use crate::engine::renderer::wgpu::texture::Texture;
 use crate::platform::resource_manager::ResourceManager;
@@ -14,6 +15,10 @@ pub struct Context<'a> {
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) default_texture: Texture,
     pub(crate) is_srgba_format: bool,
+    pub glyphon_cache: Cache,
+    pub glyphon_viewport: Viewport,
+    pub glyphon_atlas: TextAtlas,
+    pub glyphon_text_renderer: TextRenderer,
 }
 
 pub async fn request_adapter(instance: wgpu::Instance, surface: &wgpu::Surface<'_>) -> wgpu::Adapter {

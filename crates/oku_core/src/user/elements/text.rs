@@ -43,48 +43,24 @@ impl Element for Text {
     }
 
     fn draw(&mut self, renderer: &mut Box<dyn Renderer + Send>, render_context: &mut RenderContext) {
-        let text_color = cosmic_text::Color::rgba(
-            self.common_element_data.style.color.r_u8(),
-            self.common_element_data.style.color.g_u8(),
-            self.common_element_data.style.color.b_u8(),
-            self.common_element_data.style.color.a_u8(),
-        );
-
         if self.text_buffer.is_none() {
             return;
         }
         
-        let element_x = self.common_element_data().computed_x;
-        let element_y = self.common_element_data().computed_y;
         let text_buffer = self.text_buffer.as_mut().unwrap();
 
+        let bounding_rectangle = Rectangle::new(
+            self.common_element_data.computed_x + self.common_element_data.computed_padding[3] ,
+            self.common_element_data.computed_y + self.common_element_data.computed_padding[0],
+            self.common_element_data.computed_width,
+            self.common_element_data.computed_height
+        );
         renderer.draw_rect(
-            Rectangle::new(self.common_element_data.computed_x, self.common_element_data.computed_y, self.common_element_data.computed_width, self.common_element_data.computed_height),
+            bounding_rectangle,
             self.common_element_data.style.background,
         );
 
-        text_buffer.draw(
-            &mut render_context.font_system,
-            &mut render_context.swash_cache,
-            text_color,
-            |x, y, w, h, color| {
-                let r = color.r();
-                let g = color.g();
-                let b = color.b();
-                let a = color.a();
-                let a1 = a as f32 / 255.0;
-                let a2 = self.common_element_data.style.color.a / 255.0;
-                let a = (a1 * a2 * 255.0) as u8;
-
-                let p_x: i32 = (element_x + self.common_element_data.computed_padding[3] + x as f32) as i32;
-                let p_y: i32 = (element_y + self.common_element_data.computed_padding[0] + y as f32) as i32;
-
-                renderer.draw_rect(
-                    Rectangle::new(p_x as f32, p_y as f32, w as f32, h as f32),
-                    Color::new_from_rgba_u8(r, g, b, a),
-                );
-            },
-        );
+        renderer.draw_text(text_buffer.clone(), bounding_rectangle, self.common_element_data.style.color);
     }
 
     fn debug_draw(&mut self, _render_context: &mut RenderContext) {}
@@ -110,7 +86,9 @@ impl Element for Text {
         let result = taffy_tree.layout(root_node).unwrap();
         let buffer = taffy_tree.get_node_context(root_node).unwrap();
 
-        if let LayoutContext::Text(cosmic_text) = buffer { self.text_buffer = Option::from(cosmic_text.buffer.clone()) }
+        if let LayoutContext::Text(cosmic_text) = buffer {
+            self.text_buffer = Option::from(cosmic_text.buffer.clone())
+        }
 
         self.common_element_data.computed_x = x + result.location.x;
         self.common_element_data.computed_y = y + result.location.y;

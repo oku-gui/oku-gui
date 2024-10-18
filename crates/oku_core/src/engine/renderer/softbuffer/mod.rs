@@ -3,10 +3,12 @@ use crate::engine::renderer::renderer::{Rectangle, RenderCommand, Renderer};
 use softbuffer::Buffer;
 use std::num::NonZeroU32;
 use std::sync::Arc;
+use cosmic_text::FontSystem;
 use tiny_skia::{ColorSpace, Paint, Pixmap, Rect, Transform};
 use tokio::sync::RwLockReadGuard;
 use winit::window::Window;
 use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
+use crate::RenderContext;
 
 pub struct SoftwareRenderer {
     render_commands: Vec<RenderCommand>,
@@ -87,11 +89,15 @@ impl Renderer for SoftwareRenderer {
         self.render_commands.push(RenderCommand::DrawRect(rectangle, fill_color));
     }
 
+    fn draw_text(&mut self, text_buffer: cosmic_text::Buffer,  rectangle: Rectangle, fill_color: Color) {
+        todo!()
+    }
+
     fn draw_image(&mut self, _rectangle: Rectangle, resource_identifier: ResourceIdentifier) {
         todo!()
     }
 
-    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>) {
+    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>, render_context: &mut RenderContext) {
         self.framebuffer.fill(tiny_skia::Color::from_rgba8(
             self.surface_clear_color.r_u8(),
             self.surface_clear_color.g_u8(),

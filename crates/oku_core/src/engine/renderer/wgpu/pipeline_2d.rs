@@ -1,6 +1,11 @@
+use cosmic_text::Shaping;
+use cosmic_text::Family;
+use cosmic_text::Attrs;
 use std::collections::HashMap;
+use cosmic_text::{Buffer, Metrics};
 use tokio::sync::RwLockReadGuard;
 use wgpu::util::DeviceExt;
+use glyphon::{TextArea, TextBounds};
 use crate::engine::renderer::color::Color;
 use crate::engine::renderer::renderer::Rectangle;
 use crate::engine::renderer::wgpu::camera::{Camera};
@@ -9,6 +14,7 @@ use crate::engine::renderer::wgpu::texture::Texture;
 use crate::engine::renderer::wgpu::uniform::GlobalUniform;
 use crate::engine::renderer::wgpu::vertex::Vertex;
 use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
+use crate::RenderContext;
 
 fn bind_group_from_2d_texture(
     device: &wgpu::Device,
@@ -37,6 +43,12 @@ pub struct RectangleBatch {
     rectangle_indices: Vec<u32>,
 }
 
+pub struct TextRenderInfo {
+    buffer: Buffer,
+    rectangle: Rectangle,
+    fill_color: Color,
+}
+
 pub struct Pipeline2D {
     pub(crate) camera: Camera,
     pub(crate) global_uniform: GlobalUniform,
@@ -45,6 +57,7 @@ pub struct Pipeline2D {
     pub(crate) pipeline: wgpu::RenderPipeline,
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) rectangle_batch: Vec<RectangleBatch>,
+    pub(crate) text_areas: Vec<TextRenderInfo>,
     pub(crate) textures: HashMap<ResourceIdentifier, Texture>,
 }
 
@@ -175,6 +188,7 @@ impl Pipeline2D {
             pipeline: render_pipeline,
             texture_bind_group_layout,
             rectangle_batch: vec![],
+            text_areas: vec![],
             textures: Default::default(),
         }
     }
@@ -239,6 +253,14 @@ impl Pipeline2D {
         ]);
     }
 
+    pub(crate) fn draw_text(&mut self, text_buffer: Buffer, rectangle: Rectangle, fill_color: Color) {
+        self.text_areas.push(TextRenderInfo {
+            buffer: text_buffer,
+            rectangle,
+            fill_color,
+        });
+    }
+
     pub fn draw_image(&mut self, rectangle: Rectangle, resource_identifier: ResourceIdentifier) {
         let x = rectangle.x;
         let y = rectangle.y;
@@ -296,7 +318,7 @@ impl Pipeline2D {
         ]);
     }
 
-    pub fn submit(&mut self, context: &mut Context<'_>, resource_manager: RwLockReadGuard<'_, ResourceManager>) {
+    pub fn submit(&mut self, context: &mut Context<'_>, resource_manager: RwLockReadGuard<'_, ResourceManager>, render_context: &mut RenderContext) {
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder"),
         });
@@ -365,6 +387,52 @@ impl Pipeline2D {
             }
         }
 
+        {
+
+            context.glyphon_viewport.update(&context.queue, glyphon::Resolution {
+                width: context.surface_config.width,
+                height: context.surface_config.height,
+            },);
+
+            let mut text_areas: Vec<TextArea> = Vec::new();
+
+            for text_area in self.text_areas.iter() {
+                text_areas.push(
+                    TextArea {
+                        buffer: &text_area.buffer,
+                        left: text_area.rectangle.x,
+                        top: text_area.rectangle.y,
+                        scale: 1.0,
+                        bounds: TextBounds {
+                            left: text_area.rectangle.x as i32,
+                            top: text_area.rectangle.y as i32,
+                            right: (text_area.rectangle.x + text_area.rectangle.width) as i32,
+                            bottom: (text_area.rectangle.y + text_area.rectangle.height) as i32,
+                        },
+                        default_color: glyphon::Color::rgba(
+                            text_area.fill_color.r_u8(),
+                            text_area.fill_color.g_u8(),
+                            text_area.fill_color.b_u8(),
+                            text_area.fill_color.a_u8()
+                        ),
+                        custom_glyphs: &[],
+                    }
+                );
+            }
+
+            context.glyphon_text_renderer
+                .prepare(
+                    &context.device,
+                    &context.queue,
+                    &mut render_context.font_system,
+                    &mut context.glyphon_atlas,
+                    &context.glyphon_viewport,
+                    text_areas,
+                    &mut render_context.swash_cache,
+                )
+                .unwrap();
+        }
+
         //let r = ((self.surface_clear_color.r / 255.0 + 0.055) / 1.055).powf(2.4);
         //let g = ((self.surface_clear_color.g / 255.0 + 0.055) / 1.055).powf(2.4);
         //let b = ((self.surface_clear_color.b / 255.0 + 0.055) / 1.055).powf(2.4);
@@ -403,11 +471,19 @@ impl Pipeline2D {
                     _render_pass.draw_indexed(0..(batch.rectangle_indices.len() as u32), 0, 0..1);
                 }
             }
+
+            context.glyphon_text_renderer.render(
+                &context.glyphon_atlas,
+                &context.glyphon_viewport,
+                &mut _render_pass
+            ).unwrap();
         }
 
         context.queue.submit(std::iter::once(encoder.finish()));
         output.present();
 
+        context.glyphon_atlas.trim();
         self.rectangle_batch.clear();
+        self.text_areas.clear();
     }
 }

@@ -1,6 +1,8 @@
+use cosmic_text::{Buffer, FontSystem};
 use tokio::sync::RwLockReadGuard;
 use crate::engine::renderer::color::Color;
 use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
+use crate::RenderContext;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Rectangle {
@@ -41,7 +43,8 @@ pub trait Renderer {
     fn surface_set_clear_color(&mut self, color: Color);
 
     fn draw_rect(&mut self, rectangle: Rectangle, fill_color: Color);
+    fn draw_text(&mut self, text_buffer: Buffer, rectangle: Rectangle, fill_color: Color);
     fn draw_image(&mut self, rectangle: Rectangle, resource_identifier: ResourceIdentifier);
 
-    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>);
+    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>, font_system: &mut RenderContext);
 }
