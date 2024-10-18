@@ -48,12 +48,12 @@ const WAIT_TIME: time::Duration = time::Duration::from_millis(100);
 use crate::engine::app_message::AppMessage;
 use crate::engine::events::{PointerButton, PointerMoved};
 pub use crate::options::RendererType;
-use crate::platform::resource_manager::ResourceManager;
+use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
 use crate::user::elements::image::Image;
 use engine::events::internal::InternalMessage;
 pub use tokio::join;
 pub use tokio::spawn;
-use crate::engine::events::resource_event::ResourcEvent;
+use crate::engine::events::resource_event::ResourceEvent;
 
 pub type PinnedFutureAny = Pin<Box<dyn Future<Output = Box<dyn Any + Send>> + Send>>;
 
@@ -326,11 +326,12 @@ async fn async_main(
                 },
                 InternalMessage::ResourceEvent(resource_event) => {
                     match resource_event {
-                        ResourcEvent::Added(_) => {
+                        ResourceEvent::Added(_) => {
                             println!("Added resource event");
+                            
                         }
-                        ResourcEvent::Loaded(_) => {}
-                        ResourcEvent::UnLoaded(_) => {}
+                        ResourceEvent::Loaded(_) => {}
+                        ResourceEvent::UnLoaded(_) => {}
                     }
                 }
             }
@@ -493,6 +494,7 @@ async fn on_resume(
     app.renderer = renderer;
 }
 
+// Scans through the component tree and diffs it for resources that need to be updated.
 async fn scan_view_for_resources(element: &dyn Element, component: &ComponentTreeNode, app: &mut App) {
     let fiber: FiberNode = FiberNode {
         element: Some(element),

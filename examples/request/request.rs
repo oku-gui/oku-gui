@@ -39,7 +39,7 @@ impl Component for Request {
             props: None,
             children: vec![
                 ComponentSpecification {
-                    component: Image::new(ResourceIdentifier::File("a.jpg".to_string())).into(),
+                    component: Image::new(ResourceIdentifier::Url("https://picsum.photos/800".to_string())).into(),
                     key: Some("counter text".to_string()),
                     props: None,
                     children: vec![],

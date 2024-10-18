@@ -5,7 +5,7 @@ mod resource_data;
 
 use crate::engine::app_message::AppMessage;
 use crate::engine::events::internal::InternalMessage;
-use crate::engine::events::resource_event::ResourcEvent;
+use crate::engine::events::resource_event::ResourceEvent;
 pub use crate::platform::resource_manager::identifier::ResourceIdentifier;
 use crate::platform::resource_manager::image::ImageResource;
 use crate::platform::resource_manager::resource::Resource;
@@ -33,15 +33,22 @@ impl ResourceManager {
     }
 
     pub async fn add(&mut self, resource: ResourceIdentifier) {
+        println!("AB");
         if !self.resources.contains_key(&resource) {
-            let image = Resource::Image(ImageResource::new(&resource, None));
-            let resource_copy = resource.clone();
-            self.resources.insert(resource, image);
+            let image = resource.fetch_resource_from_resource_identifier().await;
+            
+            println!("ABC");
+            if let Some(imageResource) = image {
+                println!("ABCD");
+                let resource_copy = resource.clone();
+                self.resources.insert(resource, imageResource);
 
-            self.app_sender
-                .send(AppMessage::new(0, InternalMessage::ResourceEvent(ResourcEvent::Added(resource_copy))))
-                .await
-                .expect("Failed to send added resource event");
+                self.app_sender
+                    .send(AppMessage::new(0, InternalMessage::ResourceEvent(ResourceEvent::Added(resource_copy))))
+                    .await
+                    .expect("Failed to send added resource event");   
+            }
+            
         }
     }
 }
