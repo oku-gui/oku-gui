@@ -6,6 +6,7 @@ use crate::user::elements::style::{AlignItems, Display, FlexDirection, JustifyCo
 use crate::RenderContext;
 use cosmic_text::{Attrs, Buffer, FontSystem, Metrics};
 use std::any::Any;
+use std::time::Instant;
 use taffy::{NodeId, TaffyTree};
 
 #[derive(Clone, Default, Debug)]
@@ -69,12 +70,16 @@ impl Element for Text {
         attrs.weight = cosmic_text::Weight(self.common_element_data.style.font_weight.0);
         let style: taffy::Style = self.common_element_data.style.into();
 
-        taffy_tree
+        let leaf_start = Instant::now(); // Start measuring time
+        let tmp = taffy_tree
             .new_leaf_with_context(
                 style,
                 LayoutContext::Text(CosmicTextContent::new(metrics, self.text.as_str(), attrs, font_system)),
             )
-            .unwrap()
+            .unwrap();
+        let duration = leaf_start.elapsed(); // Get the elapsed time
+        println!("Leaf Time Taken: {:?} ms", duration.as_millis());
+        return tmp
     }
 
     fn finalize_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, root_node: NodeId, x: f32, y: f32) {

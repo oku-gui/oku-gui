@@ -1,3 +1,4 @@
+use std::time::Instant;
 use cosmic_text::{Attrs, Buffer, FontSystem, Metrics, Shaping};
 use taffy::{AvailableSpace, Size};
 
@@ -7,9 +8,8 @@ pub struct CosmicTextContent {
 
 impl CosmicTextContent {
     pub(crate) fn new(metrics: Metrics, text: &str, attrs: Attrs, font_system: &mut FontSystem) -> Self {
-        let mut buffer = Buffer::new_empty(metrics);
-        buffer.set_size(font_system, None, None);
-        buffer.set_text(font_system, text, attrs, Shaping::Advanced);
+        let mut buffer = Buffer::new(font_system, metrics);
+        buffer.set_text(font_system, text, attrs, Shaping::Basic);
         Self { buffer }
     }
 
@@ -19,25 +19,33 @@ impl CosmicTextContent {
         available_space: Size<AvailableSpace>,
         font_system: &mut FontSystem,
     ) -> Size<f32> {
+        
+        // return Size {width: 0.0, height: 0.0};
+        
         // Set width constraint
-        let width_constraint = known_dimensions.width.or_else(|| match available_space.width {
+        let width_constraint = known_dimensions.width.or(match available_space.width {
             AvailableSpace::MinContent => Some(0.0),
             AvailableSpace::MaxContent => None,
             AvailableSpace::Definite(width) => Some(width),
         });
 
-        self.buffer.set_size(font_system, width_constraint, None);
+        let height_constraint = known_dimensions.height.or(match available_space.height {
+            AvailableSpace::MinContent => Some(0.0),
+            AvailableSpace::MaxContent => None,
+            AvailableSpace::Definite(height) => Some(height),
+        });
 
+        self.buffer.set_size(font_system, width_constraint, height_constraint);
         // Compute layout
         self.buffer.shape_until_scroll(font_system, true);
-
+        
         // Determine measured size of text
         let (width, total_lines) = self
             .buffer
             .layout_runs()
             .fold((0.0, 0usize), |(width, total_lines), run| (run.line_w.max(width), total_lines + 1));
         let height = total_lines as f32 * self.buffer.metrics().line_height;
-
+        
         Size { width, height }
     }
 }

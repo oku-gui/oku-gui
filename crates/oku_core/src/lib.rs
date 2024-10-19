@@ -18,7 +18,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time;
-use taffy::{NodeId, TaffyTree};
+use std::time::Instant;
+use taffy::{AvailableSpace, NodeId, TaffyTree};
 use tokio::io::join;
 use tokio::sync::{mpsc, RwLock};
 use tracing::info;
@@ -525,6 +526,8 @@ async fn scan_view_for_resources(element: &dyn Element, component: &ComponentTre
 async fn on_request_redraw(app: &mut App) {
     let window_element = Container::new().into();
     let old_component_tree = app.component_tree.as_ref();
+    
+    
     let new_tree = create_trees_from_render_specification(
         app.app.clone(),
         window_element,
@@ -555,7 +558,10 @@ async fn on_request_redraw(app: &mut App) {
         root.style_mut().height = Unit::Px(renderer.surface_height());
     }
 
+    let layout_start = Instant::now(); // Start measuring time
     let (mut taffy_tree, taffy_root) = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), root.as_mut());
+    let duration = layout_start.elapsed(); // Get the elapsed time
+    println!("Layout Time Taken: {:?} ms", duration.as_millis());
     root.draw(renderer, app.renderer_context.as_mut().unwrap(), &mut taffy_tree, taffy_root);
     app.element_tree = Some(root);
 
@@ -572,10 +578,15 @@ fn layout(
     let mut taffy_tree: taffy::TaffyTree<LayoutContext> = taffy::TaffyTree::new();
     let root_node = root_element.compute_layout(&mut taffy_tree, &mut render_context.font_system);
 
+    let available_space: taffy::Size<taffy::AvailableSpace> = taffy::Size {
+        width: AvailableSpace::Definite(_window_width),
+        height: AvailableSpace::Definite(_window_height),
+    };
+    
     taffy_tree
         .compute_layout_with_measure(
             root_node,
-            taffy::Size::max_content(),
+            available_space,
             |known_dimensions, available_space, _node_id, node_context, _style| {
                 measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system)
             },
