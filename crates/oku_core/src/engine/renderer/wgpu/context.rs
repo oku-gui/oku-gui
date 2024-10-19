@@ -58,12 +58,25 @@ pub fn create_surface_config(
 ) -> wgpu::SurfaceConfiguration {
     let surface_caps = surface.get_capabilities(adapter);
 
-    // Require that we use a surface with a srgb format.
-    surface_caps.formats.iter().copied().find(|f| f.is_srgb()).expect("Failed to find a SRGB surface!");
+    // Prefer the Rgba8Unorm format if available
+    let preferred_format = wgpu::TextureFormat::Rgba8Unorm;
+
+    let surface_format = if surface_caps.formats.contains(&preferred_format) {
+        preferred_format
+    } else {
+        // If Rgba8Unorm is not available, find the best sRGB format available
+        surface_caps.formats.iter()
+            .copied()
+            .find(|format| format.is_srgb())
+            .unwrap_or_else(|| {
+                // Fallback to the first available format if none are found
+                surface_caps.formats[0]
+            })
+    };
 
     wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        format: wgpu::TextureFormat::Rgba8Unorm,
+        format: surface_format,
         width,
         height,
         present_mode: PresentMode::Fifo,
