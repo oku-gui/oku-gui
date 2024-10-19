@@ -131,7 +131,6 @@ pub fn measure_content(
                 cosmic_text_content
             } else {
                 let mut buffer = Buffer::new(font_system, taffy_text_context.metrics);
-                buffer.set_text(font_system, &taffy_text_context.text, Attrs::new(), Shaping::Advanced);
                 let x = CosmicTextContent {
                     id: taffy_text_context.id,
                     buffer,
@@ -141,6 +140,8 @@ pub fn measure_content(
                 element_state.insert(taffy_text_context.id.clone(), Box::new(x));
                 element_state.get_mut(&taffy_text_context.id).unwrap().downcast_mut().unwrap()
             };
+
+            cosmic_text_content.buffer.set_text(font_system, &taffy_text_context.text, cosmic_text::Attrs::new(), Shaping::Advanced);
             cosmic_text_content.measure(known_dimensions, available_space, font_system)
         }
         Some(LayoutContext::Image(image_context)) => image_context.measure(known_dimensions, available_space),

@@ -1,7 +1,7 @@
 use winit::dpi::PhysicalPosition;
 use winit::event::{ButtonSource, DeviceId, ElementState};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct PointerButton {
     pub device_id: Option<DeviceId>,
     pub state: ElementState,
