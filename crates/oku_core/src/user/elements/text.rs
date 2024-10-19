@@ -1,7 +1,7 @@
 use crate::engine::renderer::color::Color;
 use crate::engine::renderer::renderer::{Rectangle, Renderer};
 use crate::user::elements::element::{CommonElementData, Element};
-use crate::user::elements::layout_context::{CosmicTextContent, LayoutContext};
+use crate::user::elements::layout_context::{CosmicTextContent, LayoutContext, TaffyTextContext};
 use crate::user::elements::style::{AlignItems, Display, FlexDirection, JustifyContent, Style, Unit, Weight};
 use crate::RenderContext;
 use cosmic_text::{Attrs, Buffer, FontSystem, Metrics};
@@ -56,7 +56,7 @@ impl Element for Text {
         );
         renderer.draw_rect(bounding_rectangle, self.common_element_data.style.background);
 
-        renderer.draw_text(root_node, bounding_rectangle, self.common_element_data.style.color);
+        renderer.draw_text(self.common_element_data.component_id, bounding_rectangle, self.common_element_data.style.color);
     }
 
     fn debug_draw(&mut self, _render_context: &mut RenderContext) {}
@@ -74,7 +74,7 @@ impl Element for Text {
         let tmp = taffy_tree
             .new_leaf_with_context(
                 style,
-                LayoutContext::Text(CosmicTextContent::new(metrics, self.text.as_str(), attrs, font_system)),
+                LayoutContext::Text(TaffyTextContext::new(self.common_element_data.component_id, metrics, self.text.clone())),
             )
             .unwrap();
         let duration = leaf_start.elapsed(); // Get the elapsed time
@@ -84,7 +84,6 @@ impl Element for Text {
 
     fn finalize_layout(&mut self, taffy_tree: &mut TaffyTree<LayoutContext>, root_node: NodeId, x: f32, y: f32) {
         let result = taffy_tree.layout(root_node).unwrap();
-        let buffer = taffy_tree.get_node_context(root_node).unwrap();
 
         self.common_element_data.computed_x = x + result.location.x;
         self.common_element_data.computed_y = y + result.location.y;

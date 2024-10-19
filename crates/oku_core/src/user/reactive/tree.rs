@@ -62,7 +62,8 @@ pub(crate) fn create_trees_from_render_specification(
     component_specification: ComponentSpecification,
     mut root_element: Box<dyn Element>,
     old_component_tree: Option<&ComponentTreeNode>,
-    user_state: &mut HashMap<ComponentId, Box<GenericUserState>>
+    user_state: &mut HashMap<ComponentId, Box<GenericUserState>>,
+    element_state: &mut HashMap<ComponentId, Box<GenericUserState>>
 ) -> (ComponentTreeNode, Box<dyn Element>) {
     //println!("-----------------------------------------");
     unsafe {
@@ -146,6 +147,9 @@ pub(crate) fn create_trees_from_render_specification(
                         id,
                         parent_id: Some((*parent_component_ptr).id),
                     };
+                    if !element_state.contains_key(&id) {
+                        element_state.insert(id, Box::new(()));
+                    }
 
                     // Add the new component node to the tree and get a pointer to it.
                     parent_component_ptr.as_mut().unwrap().children.push(new_component_node);
@@ -210,8 +214,6 @@ pub(crate) fn create_trees_from_render_specification(
                     let state = state.unwrap().as_ref();
 
                     let new_component = component_spec(state, props, children, id);
-                    //let default = new_component.0;
-                    //user_state.insert(id, default);
 
                     let new_component_node = ComponentTreeNode {
                         is_element: false,

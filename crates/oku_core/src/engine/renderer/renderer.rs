@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use cosmic_text::{Buffer, FontSystem};
 use taffy::TaffyTree;
 use tokio::sync::RwLockReadGuard;
 use crate::engine::renderer::color::Color;
 use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
 use crate::RenderContext;
+use crate::user::components::component::{ComponentId, GenericUserState};
 use crate::user::elements::layout_context::LayoutContext;
 
 #[derive(Debug, Clone, Copy)]
@@ -45,8 +47,8 @@ pub trait Renderer {
     fn surface_set_clear_color(&mut self, color: Color);
 
     fn draw_rect(&mut self, rectangle: Rectangle, fill_color: Color);
-    fn draw_text(&mut self, node_id: taffy::NodeId, rectangle: Rectangle, fill_color: Color);
+    fn draw_text(&mut self, element_id: ComponentId, rectangle: Rectangle, fill_color: Color);
     fn draw_image(&mut self, rectangle: Rectangle, resource_identifier: ResourceIdentifier);
 
-    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>, font_system: &mut RenderContext, taffy_tree: &TaffyTree<LayoutContext>);
+    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>, font_system: &mut RenderContext, element_state: &HashMap<ComponentId, Box<GenericUserState>>);
 }

@@ -69,6 +69,7 @@ struct App {
     mouse_position: (f32, f32),
     update_queue: VecDeque<UpdateQueueEntry>,
     user_state: HashMap<ComponentId, Box<GenericUserState>>,
+    element_state: HashMap<ComponentId, Box<GenericUserState>>,
     resource_manager: Arc<RwLock<ResourceManager>>,
     winit_sender: mpsc::Sender<AppMessage>
 }
@@ -282,6 +283,7 @@ async fn async_main(
         mouse_position: (0.0, 0.0),
         update_queue: VecDeque::new(),
         user_state,
+        element_state: Default::default(),
         resource_manager,
         winit_sender: winit_sender.clone(),
     });
@@ -403,7 +405,6 @@ async fn on_pointer_button(
             return;
         };
 
-        //app.component_tree.as_ref().unwrap().print_tree();
         let fiber: FiberNode = FiberNode {
             element: Some(current_element_tree.as_ref()),
             component: Some(app.component_tree.as_ref().unwrap()),
@@ -533,6 +534,7 @@ async fn on_request_redraw(app: &mut App) {
         window_element,
         old_component_tree,
         &mut app.user_state,
+        &mut app.element_state
     );
 
     scan_view_for_resources(new_tree.1.as_ref(), &new_tree.0, app).await;
@@ -559,17 +561,19 @@ async fn on_request_redraw(app: &mut App) {
     }
 
     let layout_start = Instant::now(); // Start measuring time
-    let (mut taffy_tree, taffy_root) = layout(renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), root.as_mut());
+    let element_state = &mut app.element_state;
+    let (mut taffy_tree, taffy_root) = layout(element_state, renderer.surface_width(), renderer.surface_height(), app.renderer_context.as_mut().unwrap(), root.as_mut());
     let duration = layout_start.elapsed(); // Get the elapsed time
     println!("Layout Time Taken: {:?} ms", duration.as_millis());
     root.draw(renderer, app.renderer_context.as_mut().unwrap(), &mut taffy_tree, taffy_root);
     app.element_tree = Some(root);
 
     let resource_manager = app.resource_manager.read().await;
-    renderer.submit(resource_manager, &mut app.renderer_context.as_mut().unwrap(), &mut taffy_tree);
+    renderer.submit(resource_manager, &mut app.renderer_context.as_mut().unwrap(), &element_state);
 }
 
 fn layout(
+    element_state: &mut HashMap<ComponentId, Box<GenericUserState>>,
     _window_width: f32,
     _window_height: f32,
     render_context: &mut RenderContext,
@@ -588,7 +592,7 @@ fn layout(
             root_node,
             available_space,
             |known_dimensions, available_space, _node_id, node_context, _style| {
-                measure_content(known_dimensions, available_space, node_context, &mut render_context.font_system)
+                measure_content(element_state, known_dimensions, available_space, node_context, &mut render_context.font_system)
             },
         )
         .unwrap();

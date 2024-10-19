@@ -16,7 +16,8 @@ use crate::engine::renderer::wgpu::uniform::GlobalUniform;
 use crate::engine::renderer::wgpu::vertex::Vertex;
 use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
 use crate::RenderContext;
-use crate::user::elements::layout_context::LayoutContext;
+use crate::user::components::component::{ComponentId, GenericUserState};
+use crate::user::elements::layout_context::{CosmicTextContent, LayoutContext};
 
 fn bind_group_from_2d_texture(
     device: &wgpu::Device,
@@ -46,7 +47,7 @@ pub struct RectangleBatch {
 }
 
 pub struct TextRenderInfo {
-    taffy_node: taffy::NodeId,
+    element_id: ComponentId,
     rectangle: Rectangle,
     fill_color: Color,
 }
@@ -255,9 +256,9 @@ impl Pipeline2D {
         ]);
     }
 
-    pub(crate) fn draw_text(&mut self, text_buffer: taffy::NodeId, rectangle: Rectangle, fill_color: Color) {
+    pub(crate) fn draw_text(&mut self, element_id: ComponentId, rectangle: Rectangle, fill_color: Color) {
         self.text_areas.push(TextRenderInfo {
-            taffy_node: text_buffer,
+            element_id,
             rectangle,
             fill_color,
         });
@@ -320,7 +321,7 @@ impl Pipeline2D {
         ]);
     }
 
-    pub fn submit(&mut self, context: &mut Context<'_>, resource_manager: RwLockReadGuard<'_, ResourceManager>, render_context: &mut RenderContext, taffy_tree: &TaffyTree<LayoutContext>) {
+    pub fn submit(&mut self, context: &mut Context<'_>, resource_manager: RwLockReadGuard<'_, ResourceManager>, render_context: &mut RenderContext, element_state: &HashMap<ComponentId, Box<GenericUserState>>) {
         let mut encoder = context.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder"),
         });
@@ -399,8 +400,9 @@ impl Pipeline2D {
             let mut text_areas: Vec<TextArea> = Vec::new();
 
             for text_area in self.text_areas.iter() {
-                if let Some(LayoutContext::Text(cosmic_text)) = taffy_tree.get_node_context(text_area.taffy_node) {
-                    let text_buffer = &cosmic_text.buffer;
+                let text_context: &CosmicTextContent = element_state.get(&text_area.element_id).unwrap().downcast_ref().unwrap();
+                
+                    let text_buffer = &text_context.buffer;
 
                     text_areas.push(
                         TextArea {
@@ -423,7 +425,6 @@ impl Pipeline2D {
                             custom_glyphs: &[],
                         }
                     );
-                }
             }
 
             context.glyphon_text_renderer

@@ -1,4 +1,4 @@
-use crate::user::components::component::{ComponentOrElement, ComponentSpecification};
+use crate::user::components::component::{ComponentId, ComponentOrElement, ComponentSpecification};
 use crate::user::elements::layout_context::LayoutContext;
 use crate::user::elements::style::Style;
 use crate::engine::renderer::renderer::Renderer;
@@ -21,7 +21,7 @@ pub struct CommonElementData {
     /// A user-defined id for the element.
     pub id: Option<String>,
     /// The id of the component that this element belongs to.
-    pub component_id: u64,
+    pub component_id: ComponentId,
 }
 
 pub trait Element: Any + StandardElementClone + Debug + Send + Sync {

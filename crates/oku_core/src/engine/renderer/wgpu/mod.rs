@@ -5,6 +5,7 @@ mod pipeline_2d;
 mod vertex;
 mod camera;
 
+use std::collections::HashMap;
 use crate::engine::renderer::color::Color;
 use crate::engine::renderer::renderer::{Rectangle, Renderer};
 use glam;
@@ -23,6 +24,7 @@ use crate::engine::renderer::wgpu::pipeline_2d::Pipeline2D;
 use crate::engine::renderer::wgpu::texture::Texture;
 use crate::platform::resource_manager::{ResourceIdentifier, ResourceManager};
 use crate::RenderContext;
+use crate::user::components::component::{ComponentId, GenericUserState};
 use crate::user::elements::layout_context::LayoutContext;
 
 pub struct WgpuRenderer<'a> {
@@ -118,8 +120,8 @@ impl Renderer for WgpuRenderer<'_> {
        self.pipeline2d.draw_rect(rectangle, fill_color);
     }
 
-    fn draw_text(&mut self, node_id: taffy::NodeId, rectangle: Rectangle, fill_color: Color) {
-        self.pipeline2d.draw_text(node_id, rectangle, fill_color);
+    fn draw_text(&mut self, element_id: ComponentId, rectangle: Rectangle, fill_color: Color) {
+        self.pipeline2d.draw_text(element_id, rectangle, fill_color);
 
     }
 
@@ -127,7 +129,7 @@ impl Renderer for WgpuRenderer<'_> {
         self.pipeline2d.draw_image(rectangle, resource_identifier)
     }
 
-    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>, render_context: &mut RenderContext, taffy_tree: &TaffyTree<LayoutContext>) {
-        self.pipeline2d.submit(&mut self.context, resource_manager, render_context, taffy_tree);
+    fn submit(&mut self, resource_manager: RwLockReadGuard<ResourceManager>, render_context: &mut RenderContext, element_state: &HashMap<ComponentId, Box<GenericUserState>>) {
+        self.pipeline2d.submit(&mut self.context, resource_manager, render_context, element_state);
     }     
 }
