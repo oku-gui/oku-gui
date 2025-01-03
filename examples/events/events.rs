@@ -7,7 +7,7 @@ use oku::oku_main_with_options;
 use oku::OkuOptions;
 use oku_core::events::Event;
 use oku_core::events::OkuMessage::PointerButtonEvent;
-use oku_core::renderer::color::Color;
+use oku_core::renderer::color::{palette, Color};
 use oku::style::Unit;
 use oku::style::Position;
 use oku_core::RendererType;
@@ -25,13 +25,13 @@ impl Component for EventsExample {
         _children: Vec<ComponentSpecification>,
     ) -> ComponentSpecification {
         Container::new()
-            .background(Color::RED)
+            .background(palette::css::RED)
             .width(Unit::Px(400.0))
             .height(Unit::Px(400.0))
             .id("red")
             .push(
                 Container::new()
-                    .background(Color::GREEN)
+                    .background(palette::css::GREEN)
                     .inset(Unit::Px(50.0), Unit::Px(50.0), Unit::Px(50.0), Unit::Px(50.0))
                     .position(Position::Absolute)
                     .width(Unit::Px(200.0))
@@ -39,7 +39,7 @@ impl Component for EventsExample {
                     .id("green")
                     .push(
                         Container::new()
-                            .background(Color::BLUE)
+                            .background(palette::css::BLUE)
                             .inset(Unit::Px(50.0), Unit::Px(50.0), Unit::Px(50.0), Unit::Px(50.0))
                             .position(Position::Absolute)
                             .width(Unit::Px(100.0))

@@ -179,7 +179,7 @@ impl<'a> TextInputState<'a> {
 impl TextInput {
     pub fn new(text: &str) -> Self {
         let mut common_element_data = CommonElementData::default();
-        const BORDER_COLOR: Color = Color::rgba(199, 199, 206, 255);
+        const BORDER_COLOR: Color = Color::from_rgba8(199, 199, 206, 255);
         common_element_data.style.border_color = [BORDER_COLOR; 4];
         common_element_data.style.border_width = [Unit::Px(1.0); 4];
         common_element_data.style.border_radius = [(5.0, 5.0); 4];

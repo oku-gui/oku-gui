@@ -40,7 +40,7 @@ impl Component for AniList {
             .wrap(Wrap::Wrap)
             .height("100%")
             .overflow(Overflow::Scroll)
-            .background(Color::rgba(230, 230, 230, 255))
+            .background(Color::from_rgba8(230, 230, 230, 255))
             .gap("40px")
             .padding(Unit::Px(20.0), Unit::Percentage(10.0), Unit::Px(20.0), Unit::Percentage(10.0))
             .push(Container::new()

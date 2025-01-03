@@ -26,20 +26,20 @@ impl Component for Counter {
             .align_items(AlignItems::Center)
             .width("100%")
             .height("100%")
-            .background(Color::rgba(250, 250, 250, 255))
+            .background(Color::from_rgba8(250, 250, 250, 255))
             .gap("20px")
             .push(
                 Text::new(format!("{}", state.count).as_str())
                     .font_size(72.0)
-                    .color(Color::rgba(50, 50, 50, 255)),
+                    .color(Color::from_rgba8(50, 50, 50, 255)),
             )
             .push(
                 Container::new()
                     .display(Display::Flex)
                     .flex_direction(FlexDirection::Row)
                     .gap("20px")
-                    .push(create_button("-", "decrement", Color::rgba(244, 67, 54, 255)))
-                    .push(create_button("+", "increment", Color::rgba(76, 175, 80, 255))),
+                    .push(create_button("-", "decrement", Color::from_rgba8(244, 67, 54, 255)))
+                    .push(create_button("+", "increment", Color::from_rgba8(76, 175, 80, 255))),
             )
             .component()
     }
@@ -66,7 +66,7 @@ impl Component for Counter {
 fn create_button(label: &str, id: &str, color: Color) -> ComponentSpecification {
     Container::new()
         .border_width("1px", "2px", "3px", "4px")
-        .border_color(Color::rgba(0, 0, 0, 255))
+        .border_color(Color::from_rgba8(0, 0, 0, 255))
         .border_radius(10.0, 10.0, 10.0, 10.0)
         .padding("15px", "30px", "15px", "30px")
         .background(color)
