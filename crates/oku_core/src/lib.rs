@@ -641,7 +641,7 @@ async fn on_request_redraw(app: &mut App) {
     let scale_factor = app.window.as_ref().unwrap().scale_factor();
     {
         let renderer = app.renderer.as_mut().unwrap();
-        renderer.surface_set_clear_color(Color::rgba(255, 255, 255, 255));
+        renderer.surface_set_clear_color(Color::WHITE);
         surface_width = renderer.surface_width() / scale_factor as f32;
         surface_height = renderer.surface_height() / scale_factor as f32;
     }

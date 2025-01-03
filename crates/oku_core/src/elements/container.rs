@@ -73,7 +73,7 @@ impl Element for Container {
         }
 
         // scrollbar
-        let scroll_track_color = Color::rgba(100, 100, 100, 255);
+        let scroll_track_color = Color::from_rgba8(100, 100, 100, 255);
         
         // track
         renderer.draw_rect(
@@ -81,7 +81,7 @@ impl Element for Container {
             scroll_track_color,
         );
 
-        let scrollthumb_color = Color::rgba(150, 150, 150, 255);
+        let scrollthumb_color = Color::from_rgba8(150, 150, 150, 255);
         
         // thumb
         renderer.draw_rect(
