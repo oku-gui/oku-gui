@@ -52,11 +52,11 @@ impl Component for DevToolsComponent {
 
 
             let background_color = if state.selected_element.is_some() && state.selected_element.unwrap() == element.component_id() {
-                Color::rgba(45, 45, 90, 255)
+                Color::from_rgba8(45, 45, 90, 255)
             } else if element_count % 2 == 0 {
-                Color::rgba(60, 60, 60, 255)
+                Color::from_rgba8(60, 60, 60, 255)
             } else {
-                Color::rgba(45, 45, 45, 255)
+                Color::from_rgba8(45, 45, 45, 255)
             };
             
             let id = element.component_id().to_string();
@@ -82,7 +82,7 @@ impl Component for DevToolsComponent {
                 .width("100%");
 
             if let Some(custom_id) = element.get_id() {
-                let user_id_color = Color::rgba(68, 147, 248, 255);
+                let user_id_color = Color::from_rgba8(68, 147, 248, 255);
                 row = row.push(Container::new()
                     .push(Text::new(custom_id.as_str()).color(Color::WHITE).margin("2.5px", "10px", "2.5px", "10px").id(id.as_str()))
                     .id(id.as_str())
@@ -115,7 +115,7 @@ impl Component for DevToolsComponent {
             .overflow(Overflow::Scroll)
             .push(Container::new()
                 .border_width("0px", "0px", "2px", "0px").border_color(Color::WHITE)
-                .push(Text::new("Styles Window").color(Color::rgba(230, 230, 230, 255)).margin("10px", "0px", "0px", "0px"))
+                .push(Text::new("Styles Window").color(Color::from_rgba8(230, 230, 230, 255)).margin("10px", "0px", "0px", "0px"))
             )
             .component();
         
@@ -149,7 +149,7 @@ impl Component for DevToolsComponent {
             .push_element_to_inspect(state.selected_element)
             .push_inspector_hovered_element(state.inspector_hovered_element)
             .flex_direction(FlexDirection::Column)
-            .background(Color::rgba(45, 45, 45, 255))
+            .background(Color::from_rgba8(45, 45, 45, 255))
             .width(state.width)
             .height(state.height)
             .max_height(state.height)

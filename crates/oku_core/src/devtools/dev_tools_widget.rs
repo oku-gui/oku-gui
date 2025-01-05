@@ -87,7 +87,7 @@ impl Element for DevTools {
         }
 
         // scrollbar
-        let scroll_track_color = Color::rgba(100, 100, 100, 255);
+        let scroll_track_color = Color::from_rgba8(100, 100, 100, 255);
 
         // track
         renderer.draw_rect(
@@ -95,7 +95,7 @@ impl Element for DevTools {
             scroll_track_color,
         );
 
-        let scrollthumb_color = Color::rgba(150, 150, 150, 255);
+        let scrollthumb_color = Color::from_rgba8(150, 150, 150, 255);
 
         // thumb
         renderer.draw_rect(
@@ -123,9 +123,9 @@ impl Element for DevTools {
             }
 
             if let Some(selected_element) = selected_element {
-                let content_box_highlight_color = Color::rgba(184, 226, 243, 125);
-                let padding_box_highlight_color = Color::rgba(102, 87, 166, 125);
-                let margin_box_highlight_color = Color::rgba(115, 118, 240, 50);
+                let content_box_highlight_color = Color::from_rgba8(184, 226, 243, 125);
+                let padding_box_highlight_color = Color::from_rgba8(102, 87, 166, 125);
+                let margin_box_highlight_color = Color::from_rgba8(115, 118, 240, 50);
                 
                 let margin_rectangle = selected_element.common_element_data().computed_layered_rectangle_transformed.margin_rectangle();
                 renderer.push_layer(margin_rectangle);
