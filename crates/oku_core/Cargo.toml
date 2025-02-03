@@ -95,5 +95,6 @@ wgpu_renderer = ["dep:wgpu", "cosmic-text/swash",  "wgpu/fragile-send-sync-non-a
 tinyskia_renderer = ["dep:tiny-skia", "dep:softbuffer", "cosmic-text/swash"]
 vello_renderer = ["dep:vello", "dep:wgpu", "wgpu/fragile-send-sync-non-atomic-wasm"]
 http_client = ["dep:reqwest"]
+oku_c = []
 
 default = ["vello_renderer", "http_client"]

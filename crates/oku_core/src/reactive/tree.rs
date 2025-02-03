@@ -3,7 +3,6 @@ use crate::components::component::{ComponentId, ComponentOrElement, ComponentSpe
 use crate::components::props::Props;
 use crate::elements::container::ContainerState;
 use crate::elements::element::{Element, ElementBox};
-use crate::elements::Container;
 use crate::events::{Event, Message, OkuMessage};
 use crate::reactive::element_id::{create_unique_element_id};
 use crate::reactive::state_store::{StateStore, StateStoreItem};
@@ -12,17 +11,42 @@ use cosmic_text::FontSystem;
 
 use std::collections::{HashMap, HashSet};
 
+#[cfg(feature = "oku_c")]
+use crate::c::{ByteBox, CDefaultStateFn, CEvent, CUpdateFn, CViewFn};
+#[cfg(feature = "oku_c")]
+use std::ffi::c_void;
+
 #[derive(Clone)]
 pub(crate) struct ComponentTreeNode {
+    is_c: bool,
     pub is_element: bool,
     pub key: Option<String>,
     pub tag: String,
-    pub update: UpdateFn,
+    pub update_fn: UpdateFn,
     pub children: Vec<ComponentTreeNode>,
     pub children_keys: HashMap<String, ComponentId>,
     pub id: ComponentId,
     pub(crate) parent_id: Option<ComponentId>,
     pub props: Props,
+}
+
+impl ComponentTreeNode {
+
+    pub(crate) fn update(&self, state: &mut StateStoreItem, props: Props, message: Event) -> UpdateResult {
+        #[cfg(feature = "oku_c")]
+        if self.is_c {
+            let state = state.downcast_mut::<ByteBox>().unwrap();
+            let update_fn: CUpdateFn = unsafe {std::mem::transmute(self.update_fn)};
+            let message = unsafe { CEvent::from_event(message) };
+            update_fn(state.data.as_ptr() as *mut c_void, message).to_rust()
+        } else {
+            (self.update_fn)(state, props, message)
+        }
+
+        #[cfg(not(feature = "oku_c"))]
+        (self.update_fn)(state, props, message)
+    }
+
 }
 
 #[derive(Clone)]
@@ -87,10 +111,11 @@ pub(crate) fn diff_trees(
 ) -> DiffTreesResult {
     unsafe {
         let mut component_tree = ComponentTreeNode {
+            is_c: false,
             is_element: false,
             key: None,
             tag: "root".to_string(),
-            update: dummy_update,
+            update_fn: dummy_update,
             children: vec![],
             children_keys: HashMap::new(),
             id: 0,
@@ -188,10 +213,11 @@ pub(crate) fn diff_trees(
                         .as_mut();
 
                     let new_component_node = ComponentTreeNode {
+                        is_c: false,
                         is_element: true,
                         key: new_spec.key,
                         tag: new_tag,
-                        update: dummy_update,
+                        update_fn: dummy_update,
                         children: vec![],
                         children_keys: HashMap::new(),
                         id,
@@ -265,8 +291,17 @@ pub(crate) fn diff_trees(
                     new_component_ids.insert(id);
 
                     if !should_update {
-                        let default_state = (component_data.default_state)();
-                        user_state.storage.insert(id, default_state);
+                        if component_data.is_c  {
+                            #[cfg(feature = "oku_c")]
+                            {
+                                let default_state_fn: CDefaultStateFn = std::mem::transmute(component_data.default_state);
+                                let default_state = default_state_fn();
+                                user_state.storage.insert(id, Box::new(default_state));
+                            }
+                        } else {
+                            let default_state = (component_data.default_state)();
+                            user_state.storage.insert(id, default_state);
+                        }
                         let state_mut = user_state.storage.get_mut(&id).unwrap().as_mut();
 
                         (component_data.update_fn)(
@@ -278,7 +313,17 @@ pub(crate) fn diff_trees(
 
                     let state = user_state.storage.get(&id);
                     let state = state.unwrap().as_ref();
-                    let new_component = (component_data.view_fn)(state, props.clone(), new_spec.children);
+
+                    #[cfg(feature = "oku_c")]
+                    let new_component: ComponentSpecification = if component_data.is_c {
+                        let view_fn: CViewFn = std::mem::transmute(component_data.view_fn);
+                        let state = state.downcast_ref::<ByteBox>().unwrap();
+                        view_fn(state.data.as_ptr() as *const c_void).to_rust()
+                    } else {
+                        (component_data.view_fn)(state, props.clone(), new_spec.children)
+                    };
+                    #[cfg(not(feature = "oku_c"))]
+                    let new_component: ComponentSpecification = (component_data.view_fn)(state, props.clone(), new_spec.children);
 
                     // Add the current child id to the children_keys hashmap in the parent.
                     if let Some(key) = new_spec.key.clone() {
@@ -286,10 +331,11 @@ pub(crate) fn diff_trees(
                     }
 
                     let new_component_node = ComponentTreeNode {
+                        is_c: component_data.is_c,
                         is_element: false,
                         key: new_spec.key,
                         tag: component_data.tag,
-                        update: component_data.update_fn,
+                        update_fn: component_data.update_fn,
                         children: vec![],
                         children_keys: HashMap::new(),
                         id,

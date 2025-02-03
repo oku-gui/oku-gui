@@ -56,6 +56,7 @@ pub enum OkuMessage {
     PointerMovedEvent(PointerMoved),
     MouseWheelEvent(MouseWheel),
     TextInputChanged(String),
+    Unsupported
 }
 
 pub enum Message {

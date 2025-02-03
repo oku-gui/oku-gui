@@ -1793,6 +1793,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "oku_c"
+version = "0.1.0"
+dependencies = [
+ "oku_core",
+]
+
+[[package]]
 name = "oku_core"
 version = "0.1.0"
 dependencies = [

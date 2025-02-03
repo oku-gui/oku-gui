@@ -1,6 +1,8 @@
 use winit::dpi::PhysicalPosition;
 
 /// A structure representing a point in 2D space.
+
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Point {
     /// The x-coordinate of the point.

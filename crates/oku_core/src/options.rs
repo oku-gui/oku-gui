@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+
 pub struct OkuOptions {
     pub renderer: RendererType,
     pub window_title: String,
@@ -14,6 +15,7 @@ impl Default for OkuOptions {
     }
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 pub enum RendererType {
     #[cfg(all(not(target_os = "android"), feature = "tinyskia_renderer"))]

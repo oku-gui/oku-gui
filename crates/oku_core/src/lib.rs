@@ -18,6 +18,9 @@ pub mod resource_manager;
 pub mod geometry;
 mod view_introspection;
 
+#[cfg(feature = "oku_c")]
+pub mod c;
+
 pub use oku_runtime::OkuRuntime;
 pub use renderer::color::Color;
 pub use options::OkuOptions;
@@ -537,7 +540,7 @@ async fn dispatch_event(event: OkuMessage, _resource_manager: &mut Arc<RwLock<Re
             target_components.push_back(node);
 
             let state = reactive_tree.user_state.storage.get_mut(&node.id).unwrap().as_mut();
-            let res = (node.update)(
+            let res = node.update(
                 state,
                 node.props.clone(),
                 Event::new(Message::OkuMessage(event.clone()))
@@ -547,7 +550,7 @@ async fn dispatch_event(event: OkuMessage, _resource_manager: &mut Arc<RwLock<Re
             propagate = propagate && res.propagate;
             prevent_defaults = prevent_defaults || res.prevent_defaults;
             if res.future.is_some() {
-                reactive_tree.update_queue.push_back(UpdateQueueEntry::new(node.id, node.update, res, node.props.clone()));
+                reactive_tree.update_queue.push_back(UpdateQueueEntry::new(node.id, node.update_fn, res, node.props.clone()));
             }
         }
     }
@@ -590,7 +593,7 @@ async fn dispatch_event(event: OkuMessage, _resource_manager: &mut Arc<RwLock<Re
             }
 
             let state = reactive_tree.user_state.storage.get_mut(&node.id).unwrap().as_mut();
-            let res = (node.update)(
+            let res = node.update(
                 state,
                 node.props.clone(),
                 Event::new(Message::OkuMessage(event.clone())).current_target(target_element_id.clone()),
@@ -598,7 +601,7 @@ async fn dispatch_event(event: OkuMessage, _resource_manager: &mut Arc<RwLock<Re
             propagate = propagate && res.propagate;
             prevent_defaults = prevent_defaults || res.prevent_defaults;
             if res.future.is_some() {
-                reactive_tree.update_queue.push_back(UpdateQueueEntry::new(node.id, node.update, res, node.props.clone()));
+                reactive_tree.update_queue.push_back(UpdateQueueEntry::new(node.id, node.update_fn, res, node.props.clone()));
             }
         }
     }

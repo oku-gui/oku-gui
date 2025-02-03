@@ -16,6 +16,7 @@ default = ["oku_core/vello_renderer", "oku_core/http_client", "oku_core/dev_tool
 tinyskia_renderer = ["oku_core/tinyskia_renderer"]
 vello_renderer = ["oku_core/vello_renderer"]
 wgpu_renderer = ["oku_core/wgpu_renderer"]
+oku_c = ["oku_core/oku_c"]
 
 
 [dependencies]
@@ -42,7 +43,7 @@ features = ["rustls-tls", "json"]
 [workspace]
 resolver = "2"
 
-members = [
+members = [ "crates/oku_c",
     "crates/oku_core",
     "crates/oku_dylib", "crates/oku_logger", "website",
 ]

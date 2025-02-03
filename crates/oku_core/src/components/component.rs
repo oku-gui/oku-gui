@@ -103,6 +103,7 @@ pub type ComponentId = u64;
 
 #[derive(Clone, Debug)]
 pub struct ComponentData {
+    pub is_c: bool,
     pub default_state: fn() -> Box<StateStoreItem>,
     pub default_props: fn() -> Props,
     pub view_fn: ViewFn,
@@ -224,6 +225,7 @@ where
 
     fn component() -> ComponentSpecification {
         let component_data = ComponentData {
+            is_c: false,
             default_state: Self::default_state,
             default_props: Self::default_props,
             view_fn: Self::generic_view,

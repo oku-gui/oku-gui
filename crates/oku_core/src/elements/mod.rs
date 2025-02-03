@@ -22,3 +22,6 @@ pub use crate::elements::text_input::TextInput;
 pub use crate::elements::canvas::Canvas;
 pub use crate::elements::font::Font;
 pub use crate::elements::element_styles::ElementStyles;
+
+#[cfg(feature = "oku_c")]
+pub use crate::elements::element::ElementBox;
